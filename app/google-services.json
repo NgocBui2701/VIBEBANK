@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "148581842319",
+    "project_id": "vibebank-511b5",
+    "storage_bucket": "vibebank-511b5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:148581842319:android:58850fdeb883e475f85ffa",
+        "android_client_info": {
+          "package_name": "com.example.vibebank"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwRbj4v9STObstMSsPJ2Y3FcCyp2Rq0hc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
