@@ -154,7 +154,7 @@
                     app:layout_constraintTop_toBottomOf="@id/input_layout_password" />
 
                 <!-- Create Account Link -->
-                <com.google.android.material.button.MaterialButton
+                <TextView
                     android:id="@+id/text_create_account"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -163,17 +163,13 @@
                     android:focusable="true"
                     android:fontFamily="@font/nunito_sans"
                     android:text="Tạo tài khoản"
-                    android:textAlignment="textStart"
                     android:textColor="#000000"
                     android:textSize="16sp"
-                    android:padding="0dp"
-                    app:backgroundTint="@android:color/transparent"
-                    app:elevation="0dp"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/divider_password" />
 
                 <!-- Forgot Password Link -->
-                <com.google.android.material.button.MaterialButton
+                <TextView
                     android:id="@+id/text_forgot_password"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -184,9 +180,6 @@
                     android:text="Quên mật khẩu?"
                     android:textColor="#000000"
                     android:textSize="16sp"
-                    android:padding="0dp"
-                    app:backgroundTint="@android:color/transparent"
-                    app:elevation="0dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/divider_password" />
 

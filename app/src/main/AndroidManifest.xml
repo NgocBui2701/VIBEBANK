@@ -27,7 +27,16 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".RegisterActivity" />
+        <activity android:name=".RegisterActivity" 
+            android:windowSoftInputMode="adjustPan" />
+        <activity android:name=".Register2Activity" 
+            android:windowSoftInputMode="adjustPan" />
+        <activity android:name=".Register3Activity" 
+            android:windowSoftInputMode="adjustPan" />
+        <activity android:name=".Register4Activity" 
+            android:windowSoftInputMode="adjustPan" />
+        <activity android:name=".Register5Activity" 
+            android:windowSoftInputMode="adjustPan" />
 
     </application>
 
