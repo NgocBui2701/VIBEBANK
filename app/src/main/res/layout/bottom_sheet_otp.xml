@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bottom_sheet_background"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Nhập mã OTP"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#000000"
+        android:fontFamily="@font/nunito_sans"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvOtpMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mã xác thực (OTP) đã được gửi về Email của bạn"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:fontFamily="@font/nunito_sans"
+        android:gravity="center"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="24dp" />
+
+    <!-- OTP Input Fields -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="16dp">
+
+        <EditText
+            android:id="@+id/otpDigit1"
+            style="@style/OtpDigitStyle"
+            android:layout_marginEnd="8dp" />
+
+        <EditText
+            android:id="@+id/otpDigit2"
+            style="@style/OtpDigitStyle"
+            android:layout_marginEnd="8dp" />
+
+        <EditText
+            android:id="@+id/otpDigit3"
+            style="@style/OtpDigitStyle"
+            android:layout_marginEnd="8dp" />
+
+        <EditText
+            android:id="@+id/otpDigit4"
+            style="@style/OtpDigitStyle"
+            android:layout_marginEnd="8dp" />
+
+        <EditText
+            android:id="@+id/otpDigit5"
+            style="@style/OtpDigitStyle"
+            android:layout_marginEnd="8dp" />
+
+        <EditText
+            android:id="@+id/otpDigit6"
+            style="@style/OtpDigitStyle" />
+
+    </LinearLayout>
+
+    <!-- Resend Link -->
+    <TextView
+        android:id="@+id/tvResendOtp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Gửi lại mã"
+        android:textSize="14sp"
+        android:textColor="#000000"
+        android:fontFamily="@font/nunito_sans"
+        android:textStyle="bold"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="24dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="8dp" />
+
+    <!-- Continue Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnContinueOtp"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="TIẾP THEO"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:fontFamily="@font/nunito_sans"
+        android:backgroundTint="#000000"
+        app:cornerRadius="5dp" />
+
+</LinearLayout>
