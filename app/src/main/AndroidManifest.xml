@@ -37,6 +37,10 @@
             android:windowSoftInputMode="adjustPan" />
         <activity android:name=".Register5Activity" 
             android:windowSoftInputMode="adjustPan" />
+        <activity android:name=".ForgotPasswordActivity" 
+            android:windowSoftInputMode="adjustPan" />
+        <activity android:name=".ResetPasswordActivity" 
+            android:windowSoftInputMode="adjustPan" />
 
     </application>
 
