@@ -1,6 +1,7 @@
 package com.example.vibebank;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.MotionEvent;
@@ -296,8 +297,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void setupFunctionButtons() {
         // Main functions
-        findViewById(R.id.btnAccountManagement).setOnClickListener(v -> 
-            Toast.makeText(this, "Quản lý tài khoản", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnAccountManagement).setOnClickListener(v -> {
+            Intent intent = new Intent(this, AccountManagementActivity.class);
+            startActivity(intent);
+        });
         
         findViewById(R.id.btnTransfer).setOnClickListener(v -> 
             Toast.makeText(this, "Chuyển tiền & Thanh toán", Toast.LENGTH_SHORT).show());

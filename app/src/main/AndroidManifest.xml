@@ -52,6 +52,8 @@
         <activity android:name=".ResetPasswordActivity" 
             android:windowSoftInputMode="adjustPan" />
         <activity android:name=".HomeActivity" />
+        <activity android:name=".AccountManagementActivity" 
+            android:windowSoftInputMode="adjustPan" />
 
     </application>
 
