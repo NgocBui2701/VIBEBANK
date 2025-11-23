@@ -286,7 +286,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 break;
             case 3:
                 txtTransfer.setTextColor(0xFFA0522D);
-                Toast.makeText(this, "Chuyển tiền", Toast.LENGTH_SHORT).show();
+                Intent transferIntent = new Intent(this, TransferActivity.class);
+                startActivity(transferIntent);
                 break;
             case 4:
                 txtSupport.setTextColor(0xFFA0522D);
@@ -302,8 +303,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             startActivity(intent);
         });
         
-        findViewById(R.id.btnTransfer).setOnClickListener(v -> 
-            Toast.makeText(this, "Chuyển tiền & Thanh toán", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnTransfer).setOnClickListener(v -> {
+            Intent intent = new Intent(this, TransferActivity.class);
+            startActivity(intent);
+        });
         
         findViewById(R.id.btnQR).setOnClickListener(v -> 
             Toast.makeText(this, "Mã QR của tôi", Toast.LENGTH_SHORT).show());
