@@ -7,7 +7,6 @@
     android:background="#FFFFFF"
     android:id="@+id/register3">
 
-    <!-- App Bar -->
     <LinearLayout
         android:id="@+id/appbar"
         android:layout_width="match_parent"
@@ -37,7 +36,6 @@
 
     </LinearLayout>
 
-    <!-- Body -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -63,7 +61,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Để xác thực tài khoản theo quy định, chúng tôi cần bạn cung cấp ảnh để lưu trữ thân."
+                android:text="Để xác thực tài khoản, vui lòng cung cấp ảnh chụp 2 mặt giấy tờ tùy thân."
                 android:textSize="14sp"
                 android:textColor="#666666"
                 android:fontFamily="@font/nunito_sans"
@@ -82,46 +80,58 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="• Ảnh rõ nét, không bị mờ lòa sáng.\n• Đầy đủ 4 góc của CCCD."
+                android:text="• Ảnh rõ nét, không bị mờ lóa sáng.\n• Đầy đủ 4 góc của CCCD."
                 android:textSize="14sp"
                 android:textColor="#666666"
                 android:fontFamily="@font/nunito_sans"
                 android:layout_marginBottom="24dp" />
 
-            <!-- Mặt trước Card -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="200dp"
                 android:layout_marginBottom="12dp"
-                app:cardCornerRadius="8dp"
+                app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="#CCCCCC">
+                app:cardBackgroundColor="#F0F0F0">
 
-                <LinearLayout
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center">
+                    android:layout_height="match_parent">
 
                     <ImageView
-                        android:layout_width="64dp"
-                        android:layout_height="64dp"
-                        android:src="@android:drawable/ic_menu_camera"
-                        android:tint="#FFFFFF"
-                        android:layout_marginBottom="8dp" />
+                        android:id="@+id/imgFront"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:background="#E0E0E0" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="MẶT TRƯỚC"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="#FFFFFF"
-                        android:fontFamily="@font/nunito_sans" />
-                </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/layoutPlaceholderFront"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <ImageView
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:src="@android:drawable/ic_menu_camera"
+                            app:tint="#999999"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="MẶT TRƯỚC"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="#999999"
+                            android:fontFamily="@font/nunito_sans" />
+                    </LinearLayout>
+
+                </FrameLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Nút chụp mặt trước -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCaptureFront"
                 android:layout_width="match_parent"
@@ -137,40 +147,53 @@
                 app:strokeWidth="1dp"
                 app:cornerRadius="8dp" />
 
-            <!-- Mặt sau Card -->
+
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="200dp"
                 android:layout_marginBottom="12dp"
-                app:cardCornerRadius="8dp"
+                app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="#CCCCCC">
+                app:cardBackgroundColor="#F0F0F0">
 
-                <LinearLayout
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center">
+                    android:layout_height="match_parent">
 
                     <ImageView
-                        android:layout_width="64dp"
-                        android:layout_height="64dp"
-                        android:src="@android:drawable/ic_menu_camera"
-                        android:tint="#FFFFFF"
-                        android:layout_marginBottom="8dp" />
+                        android:id="@+id/imgBack"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:background="#E0E0E0" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="MẶT SAU"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="#FFFFFF"
-                        android:fontFamily="@font/nunito_sans" />
-                </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/layoutPlaceholderBack"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <ImageView
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:src="@android:drawable/ic_menu_camera"
+                            app:tint="#999999"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="MẶT SAU"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="#999999"
+                            android:fontFamily="@font/nunito_sans" />
+                    </LinearLayout>
+
+                </FrameLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Nút chụp mặt sau -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCaptureBack"
                 android:layout_width="match_parent"
@@ -189,7 +212,6 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- Nút tiếp theo -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnNext"
         android:layout_width="match_parent"
@@ -202,6 +224,6 @@
         android:textStyle="bold"
         android:textSize="16sp"
         android:backgroundTint="#000000"
-        app:cornerRadius="5dp" />
+        app:cornerRadius="8dp" />
 
 </LinearLayout>

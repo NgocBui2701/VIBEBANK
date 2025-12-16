@@ -1,4 +1,4 @@
-package com.example.vibebank;
+package com.example.vibebank.ui.login;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -10,6 +10,10 @@ import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.vibebank.ForgotPasswordActivity;
+import com.example.vibebank.HomeActivity;
+import com.example.vibebank.R;
+import com.example.vibebank.ui.register.RegisterActivity;
 import com.google.android.material.button.MaterialButton;
 
 public class LoginActivity extends AppCompatActivity {

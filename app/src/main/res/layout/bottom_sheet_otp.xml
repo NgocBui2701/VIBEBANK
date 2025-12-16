@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Nhập mã OTP"
-        android:textSize="18sp"
+        android:textSize="20sp"
         android:textStyle="bold"
         android:textColor="#000000"
         android:fontFamily="@font/nunito_sans"
@@ -22,7 +22,7 @@
         android:id="@+id/tvOtpMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Mã xác thực (OTP) đã được gửi về Email của bạn"
+        android:text="Mã OTP đã được gửi về số điện thoại của bạn"
         android:textSize="14sp"
         android:textColor="#666666"
         android:fontFamily="@font/nunito_sans"
@@ -70,27 +70,40 @@
     </LinearLayout>
 
     <!-- Resend Link -->
-    <TextView
-        android:id="@+id/tvResendOtp"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Gửi lại mã"
-        android:textSize="14sp"
-        android:textColor="#000000"
-        android:fontFamily="@font/nunito_sans"
-        android:textStyle="bold"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="24dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:padding="8dp" />
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Bạn không nhận được mã? "
+            android:textColor="#666666"
+            android:fontFamily="@font/nunito_sans"
+            android:textSize="14sp"/>
+
+        <TextView
+            android:id="@+id/tvResendOtp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Gửi lại (60s)"
+            android:textSize="14sp"
+            android:textColor="#999999"
+            android:textStyle="bold"
+            android:fontFamily="@font/nunito_sans"
+            android:clickable="false"
+            android:padding="4dp" />
+    </LinearLayout>
 
     <!-- Continue Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnContinueOtp"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:text="TIẾP THEO"
+        android:text="XÁC NHẬN"
         android:textColor="#FFFFFF"
         android:textStyle="bold"
         android:textSize="16sp"
