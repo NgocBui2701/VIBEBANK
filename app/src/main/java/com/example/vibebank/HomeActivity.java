@@ -282,7 +282,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 break;
             case 1:
                 txtHistory.setTextColor(0xFFA0522D);
-                Toast.makeText(this, "Lịch sử", Toast.LENGTH_SHORT).show();
+                Intent historyIntent = new Intent(this, TransactionHistoryActivity.class);
+                startActivity(historyIntent);
                 break;
             case 3:
                 txtTransfer.setTextColor(0xFFA0522D);

@@ -68,6 +68,10 @@
         <activity android:name=".TransferDetailsActivity" 
             android:windowSoftInputMode="adjustPan" />
         <activity android:name=".TransferResultActivity" 
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity android:name=".TransactionHistoryActivity" 
+            android:exported="false"
             android:windowSoftInputMode="adjustPan" />
 
     </application>
