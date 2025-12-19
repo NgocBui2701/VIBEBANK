@@ -313,8 +313,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         findViewById(R.id.btnQR).setOnClickListener(v -> 
             Toast.makeText(this, "Mã QR của tôi", Toast.LENGTH_SHORT).show());
         
-        findViewById(R.id.btnWithdraw).setOnClickListener(v -> 
-            Toast.makeText(this, "Rút tiền bằng mã", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnWithdraw).setOnClickListener(v -> {
+            Intent intent = new Intent(this, WithdrawCodeActivity.class);
+            startActivity(intent);
+        });
 
         // Secondary functions
         findViewById(R.id.btnElectricity).setOnClickListener(v -> 
