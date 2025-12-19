@@ -292,7 +292,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 break;
             case 4:
                 txtSupport.setTextColor(0xFFA0522D);
-                Toast.makeText(this, "Hỗ sơ", Toast.LENGTH_SHORT).show();
+                Intent profileIntent = new Intent(this, ProfileActivity.class);
+                startActivity(profileIntent);
                 break;
         }
     }
