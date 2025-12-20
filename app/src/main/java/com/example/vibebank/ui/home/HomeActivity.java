@@ -27,7 +27,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.vibebank.AccountManagementActivity;
-import com.example.vibebank.ProfileActivity;
+import com.example.vibebank.ui.profile.ProfileActivity;
 import com.example.vibebank.R;
 import com.example.vibebank.TransactionHistoryActivity;
 import com.example.vibebank.TransferActivity;

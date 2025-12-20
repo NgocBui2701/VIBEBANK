@@ -1,14 +1,15 @@
-package com.example.vibebank;
+package com.example.vibebank.ui.profile;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
-import com.example.vibebank.ui.login.LoginActivity;
+import com.example.vibebank.R;
+import com.example.vibebank.utils.SessionManager;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.button.MaterialButton;
@@ -29,14 +30,23 @@ public class ProfileActivity extends AppCompatActivity {
     private View itemBirthday, itemGender, itemCCCD, itemAddress, itemIssueDate;
     private View itemContactPhone, itemEmail;
 
+    private ProfileViewModel viewModel;
+    private SessionManager sessionManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
 
+        sessionManager = new SessionManager(this);
+        viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
+
         initViews();
-        loadUserData();
         setupListeners();
+        setupObservers();
+
+        String uid = sessionManager.getUserId();
+        viewModel.loadUserProfile(uid);
     }
 
     private void initViews() {
@@ -80,35 +90,6 @@ public class ProfileActivity extends AppCompatActivity {
 
         // Logout
         btnLogout = findViewById(R.id.btnLogout);
-    }
-
-    private void loadUserData() {
-        // TODO: Load from database
-        // For now, using sample data
-
-        // User basic info
-        txtUserName.setText("TRẦN NHỰT ĐÔNG KHÔI");
-        txtPhone.setText("0364953666");
-
-        // Account info
-        txtAccountNumber.setText("1234 5678 9012");
-        txtAccountType.setText("Cá nhân");
-        txtOpenDate.setText("15/08/2023");
-
-        // Personal info
-        setProfileInfoItem(itemBirthday, "Ngày sinh", "25/09/2005");
-        setProfileInfoItem(itemGender, "Giới tính", "Nam");
-        setProfileInfoItem(itemCCCD, "CCCD", "089205001234");
-        setProfileInfoItem(itemAddress, "Nơi thường trú", "Xã Thoại Sơn, Tỉnh An Giang");
-        setProfileInfoItem(itemIssueDate, "Ngày cấp", "22/11/2021");
-
-        // Contact info
-        setProfileInfoItem(itemContactPhone, "Số điện thoại", "0375092732");
-        setProfileInfoItem(itemEmail, "Email", "dongkhoidev@gmail.com");
-
-        // Settings
-        switchBiometric.setChecked(true);
-        switchNightMode.setChecked(false);
         switchNotification.setChecked(true);
         txtCurrentLanguage.setText("Tiếng Việt");
     }
@@ -117,7 +98,42 @@ public class ProfileActivity extends AppCompatActivity {
         TextView txtLabel = itemView.findViewById(R.id.txtLabel);
         TextView txtValue = itemView.findViewById(R.id.txtValue);
         txtLabel.setText(label);
-        txtValue.setText(value);
+
+        if (value == null || value.isEmpty()) {
+            txtValue.setText("Chưa cập nhật");
+        } else {
+            txtValue.setText(value);
+        }
+    }
+
+    private void setupObservers() {
+        // Quan sát dữ liệu từ ViewModel và cập nhật UI
+
+        // 1. Header Info
+        viewModel.fullName.observe(this, name -> {
+            if (name != null) txtUserName.setText(name.toUpperCase());
+        });
+        viewModel.phone.observe(this, phone -> {
+            if (phone != null) {
+                txtPhone.setText(phone);
+                setProfileInfoItem(itemContactPhone, "Số điện thoại", phone);
+            }
+        });
+
+        // 2. Account Info
+        viewModel.accountNumber.observe(this, accNum -> txtAccountNumber.setText(accNum));
+        viewModel.accountType.observe(this, type -> txtAccountType.setText(type));
+        viewModel.openDate.observe(this, date -> txtOpenDate.setText(date));
+
+        // 3. Personal Info
+        viewModel.birthday.observe(this, val -> setProfileInfoItem(itemBirthday, "Ngày sinh", val));
+        viewModel.gender.observe(this, val -> setProfileInfoItem(itemGender, "Giới tính", val));
+        viewModel.cccd.observe(this, val -> setProfileInfoItem(itemCCCD, "CCCD/CMND", val));
+        viewModel.address.observe(this, val -> setProfileInfoItem(itemAddress, "Địa chỉ", val));
+        viewModel.issueDate.observe(this, val -> setProfileInfoItem(itemIssueDate, "Ngày cấp", val));
+
+        // 4. Contact Info
+        viewModel.email.observe(this, val -> setProfileInfoItem(itemEmail, "Email", val));
     }
 
     private void setupListeners() {
@@ -192,22 +208,25 @@ public class ProfileActivity extends AppCompatActivity {
 
         // Logout
         btnLogout.setOnClickListener(v -> {
-            // TODO: Show logout confirmation dialog
             showLogoutConfirmation();
         });
     }
 
     private void showLogoutConfirmation() {
-//        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-//                .setTitle("Đăng xuất")
-//                .setMessage("Bạn có chắc chắn muốn đăng xuất?")
-//                .setPositiveButton("Đăng xuất", (d, w) -> sessionManager.logoutUser())
-//                .setNegativeButton("Hủy", null)
-//                .show();
-//        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
-//                .setTextColor(android.graphics.Color.parseColor("#4CAF50"));
-//        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE)
-//                .setTextColor(android.graphics.Color.parseColor("#FF0000"));
+        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle("Đăng xuất")
+                .setMessage("Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng?")
+                .setPositiveButton("Đăng xuất", (d, w) -> {
+                    sessionManager.logoutUser();
+                    finishAffinity();
+                })
+                .setNegativeButton("Hủy", (d, w) -> d.dismiss())
+                .show();
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(android.graphics.Color.parseColor("#4CAF50"));
+
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE)
+                .setTextColor(android.graphics.Color.parseColor("#F44336"));
     }
 
     private void showToast(String message) {
