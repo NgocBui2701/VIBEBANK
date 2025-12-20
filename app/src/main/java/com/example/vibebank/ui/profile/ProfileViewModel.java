@@ -80,8 +80,6 @@ public class ProfileViewModel extends ViewModel {
                         cccd.setValue(doc.getString("id_number"));
                         issueDate.setValue(doc.getString("issue_date"));
 
-                        // Các trường này nếu lúc đăng ký chưa lưu thì sẽ null
-                        // Bạn có thể update sau bằng chức năng "Chỉnh sửa hồ sơ"
                         String sex = doc.getString("gender");
                         gender.setValue(sex != null ? sex : "Chưa cập nhật");
 
