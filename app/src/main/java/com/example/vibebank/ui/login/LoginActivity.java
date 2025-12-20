@@ -110,6 +110,13 @@ public class LoginActivity extends BaseActivity {
                         etUsername.getText().toString().trim(),
                         viewModel.successFullName
                 );
+
+                // Lưu riêng ID vào SharedPreferences
+                android.content.SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+                android.content.SharedPreferences.Editor editor = prefs.edit();
+                editor.putString("current_user_id", viewModel.successUserId);
+                editor.apply();
+
                 navigateToHome();
             } else {
                 showErrorDialog(errorMsg);

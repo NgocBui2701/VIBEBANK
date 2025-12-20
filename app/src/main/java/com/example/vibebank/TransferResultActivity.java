@@ -2,135 +2,79 @@ package com.example.vibebank;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.ImageView;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.vibebank.ui.home.HomeActivity;
-import com.google.android.material.button.MaterialButton;
 
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Random;
 
 public class TransferResultActivity extends AppCompatActivity {
-    private ImageView btnClose, imgResultIcon;
-    private TextView txtResultStatus, txtResultAmount;
-    private TextView txtDetailRecipientName, txtDetailRecipientAccount, txtDetailBank;
-    private TextView txtDetailMessage, txtDetailDate, txtDetailTransactionId, txtDetailReferenceId;
-    private MaterialButton btnComplete;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transfer_result);
 
-        // Initialize views
-        btnClose = findViewById(R.id.btnClose);
-        imgResultIcon = findViewById(R.id.imgResultIcon);
-        txtResultStatus = findViewById(R.id.txtResultStatus);
-        txtResultAmount = findViewById(R.id.txtResultAmount);
-        txtDetailRecipientName = findViewById(R.id.txtDetailRecipientName);
-        txtDetailRecipientAccount = findViewById(R.id.txtDetailRecipientAccount);
-        txtDetailBank = findViewById(R.id.txtDetailBank);
-        txtDetailMessage = findViewById(R.id.txtDetailMessage);
-        txtDetailDate = findViewById(R.id.txtDetailDate);
-        txtDetailTransactionId = findViewById(R.id.txtDetailTransactionId);
-        txtDetailReferenceId = findViewById(R.id.txtDetailReferenceId);
-        btnComplete = findViewById(R.id.btnComplete);
+        TextView txtAmount = findViewById(R.id.txtResultAmount);
+        TextView txtReceiverName = findViewById(R.id.txtDetailRecipientName);
+        TextView txtReceiverAccount = findViewById(R.id.txtDetailRecipientAccount);
+        TextView txtContent = findViewById(R.id.txtDetailMessage);
+        TextView txtRef = findViewById(R.id.txtDetailReferenceId);
+        TextView txtTime = findViewById(R.id.txtDetailDate);
+        Button btnComplete = findViewById(R.id.btnComplete);
+        View btnClose = findViewById(R.id.btnClose);
 
-        // Get transfer info from intent
-        boolean success = getIntent().getBooleanExtra("success", true);
-        String amount = getIntent().getStringExtra("amount");
-        String bank = getIntent().getStringExtra("bank");
-        String accountNumber = getIntent().getStringExtra("accountNumber");
-        String accountName = getIntent().getStringExtra("accountName");
-        String message = getIntent().getStringExtra("message");
+        double amount = getIntent().getDoubleExtra("amount", 0);
+        String refId = getIntent().getStringExtra("refId");
+        String receiverName = getIntent().getStringExtra("receiverName");
+        String receiverAccount = getIntent().getStringExtra("receiverAccount");
+        String content = getIntent().getStringExtra("content");
 
-        // Display result
-        displayResult(success, amount, bank, accountNumber, accountName, message);
-
-        // Close button
-        btnClose.setOnClickListener(v -> {
-            // Go back to home
-            Intent intent = new Intent(this, HomeActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-            finish();
-        });
-
-
-        // Complete button
-        btnComplete.setOnClickListener(v -> {
-            // Go back to home
-            Intent intent = new Intent(this, HomeActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-            finish();
-        });
-    }
-
-    private void displayResult(boolean success, String amount, String bank, 
-                               String accountNumber, String accountName, String message) {
-        if (success) {
-            imgResultIcon.setImageResource(R.drawable.ic_check_circle);
-            txtResultStatus.setText("Chuyển tiền thành công");
-            txtResultStatus.setTextColor(0xFF4CAF50);
-        } else {
-            imgResultIcon.setImageResource(R.drawable.ic_error);
-            txtResultStatus.setText("Chuyển tiền thất bại");
-            txtResultStatus.setTextColor(0xFFF44336);
+        // Format tiền tệ đơn giản
+        if (txtAmount != null) {
+            txtAmount.setText(String.format("%,.0f VND", amount));
         }
 
-        // Format and display amount
-        try {
-            long amountValue = Long.parseLong(amount.replaceAll("[^0-9]", ""));
-            NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
-            txtResultAmount.setText(formatter.format(amountValue) + " VND");
-        } catch (Exception e) {
-            txtResultAmount.setText(amount + " VND");
+        // Hiển thị thông tin người nhận
+        if (txtReceiverName != null) {
+            txtReceiverName.setText(receiverName != null ? receiverName : "N/A");
         }
 
-        // Display recipient details
-        if (accountName != null) txtDetailRecipientName.setText(accountName);
-        if (accountNumber != null) txtDetailRecipientAccount.setText(accountNumber);
-        if (bank != null) txtDetailBank.setText(bank);
-        if (message != null && !message.isEmpty()) {
-            txtDetailMessage.setText(message);
-        } else {
-            txtDetailMessage.setText("Không có");
+        if (txtReceiverAccount != null) {
+            txtReceiverAccount.setText(receiverAccount != null ? receiverAccount : "N/A");
         }
 
-        // Display transaction date/time
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", new Locale("vi", "VN"));
-        txtDetailDate.setText(dateFormat.format(new Date()));
+        if (txtContent != null) {
+            txtContent.setText(content != null ? content : "N/A");
+        }
 
-        // Generate mock transaction IDs
-        txtDetailTransactionId.setText(generateTransactionId());
-        txtDetailReferenceId.setText(generateReferenceId());
+        // Hiển thị mã giao dịch
+        if (txtRef != null) {
+            txtRef.setText(refId != null ? refId : "N/A");
+        }
+
+        // Hiển thị thời gian hiện tại
+        if (txtTime != null) {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+            txtTime.setText(sdf.format(new Date()));
+        }
+
+        btnComplete.setOnClickListener(v -> goHome());
+
+        if (btnClose != null) {
+            btnClose.setOnClickListener(v -> goHome());
+        }
     }
 
-    private String generateTransactionId() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyDDD", Locale.US);
-        String datePart = dateFormat.format(new Date());
-        Random random = new Random();
-        long numberPart = 10000000 + random.nextInt(90000000);
-        return "FT" + datePart + numberPart;
-    }
-
-    private String generateReferenceId() {
-        Random random = new Random();
-        long numberPart = 100000000 + random.nextInt(900000000);
-        return "REF" + numberPart;
-    }
-
-    @Override
-    public void onBackPressed() {
-        // Prevent going back, force user to use Complete button
-        Toast.makeText(this, "Vui lòng nhấn nút Hoàn thành", Toast.LENGTH_SHORT).show();
+    private void goHome() {
+        Intent intent = new Intent(TransferResultActivity.this, HomeActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 }

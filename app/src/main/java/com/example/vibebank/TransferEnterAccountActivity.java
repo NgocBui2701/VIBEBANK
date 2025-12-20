@@ -4,77 +4,106 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.android.material.button.MaterialButton;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
 
 public class TransferEnterAccountActivity extends AppCompatActivity {
-    private ImageView btnBack;
-    private TextView txtBankName;
-    private EditText edtAccountNumber;
-    private MaterialButton btnContinue;
 
-    private String bankCode;
-    private String bankName;
+    private EditText edtAccountNumber;
+    private Button btnContinue;
+    private TextView tvError;
+    private FirebaseFirestore db;
+    private String selectedBank;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transfer_enter_account);
 
-        // Initialize views
-        btnBack = findViewById(R.id.btnBack);
-        txtBankName = findViewById(R.id.txtBankName);
-        edtAccountNumber = findViewById(R.id.edtAccountNumber);
+        db = FirebaseFirestore.getInstance();
+        selectedBank = getIntent().getStringExtra("bankName");
+
+        // Ánh xạ view (cần đảm bảo ID trùng khớp XML)
+        edtAccountNumber = findViewById(R.id.edtAccountNumber); // Cần thêm ID này vào EditText trong XML
         btnContinue = findViewById(R.id.btnContinue);
+        tvError = findViewById(R.id.tvError); // Cần thêm TextView báo lỗi (mặc định visibility=GONE)
+        View btnBack = findViewById(R.id.btnBack);
 
-        // Get bank info from intent
-        bankCode = getIntent().getStringExtra("bankCode");
-        bankName = getIntent().getStringExtra("bankName");
-
-        if (bankName != null) {
-            txtBankName.setText(bankName);
-        }
-
-        // Back button
         btnBack.setOnClickListener(v -> finish());
 
-        // Enable/disable continue button based on input
+        // Enable button khi có text
         edtAccountNumber.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                btnContinue.setEnabled(s.length() >= 6);
+                btnContinue.setEnabled(s.length() > 0);
+                tvError.setVisibility(View.GONE); // Ẩn lỗi khi gõ lại
             }
-
             @Override
             public void afterTextChanged(Editable s) {}
         });
 
-        // Continue button
-        btnContinue.setOnClickListener(v -> {
-            String accountNumber = edtAccountNumber.getText().toString().trim();
-            
-            if (accountNumber.isEmpty()) {
-                Toast.makeText(this, "Vui lòng nhập số tài khoản", Toast.LENGTH_SHORT).show();
-                return;
-            }
+        btnContinue.setOnClickListener(v -> checkAccountExistence());
+    }
 
-            // Simulate account validation - in real app, call API here
-            String accountName = "NGUYEN QUOC BAO"; // Mock data
+    private void checkAccountExistence() {
+        String accountNumber = edtAccountNumber.getText().toString().trim();
 
-            Intent intent = new Intent(this, TransferDetailsActivity.class);
-            intent.putExtra("bank", bankName);
-            intent.putExtra("accountNumber", accountNumber);
-            intent.putExtra("accountName", accountName);
-            startActivity(intent);
-        });
+        // Tìm user có accountNumber tương ứng trong collection "users"
+        db.collection("accounts")
+                .whereEqualTo("account_number", accountNumber)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        QuerySnapshot documents = task.getResult();
+                        if (!documents.isEmpty()) {
+                            // Tài khoản tồn tại -> Lấy thông tin và chuyển trang
+                            DocumentSnapshot accountDoc = documents.getDocuments().get(0);
+                            String userId = accountDoc.getId();
+
+                            db.collection("users")
+                                    .document(userId)
+                                    .get()
+                                    .addOnCompleteListener(userTask -> {
+                                        if (userTask.isSuccessful()) {
+                                            DocumentSnapshot userDoc = userTask.getResult();
+                                            if (userDoc.exists()) {
+                                                String name = userDoc.getString("full_name");
+
+                                                // Chuyển trang và gửi dữ liệu
+                                                Intent intent = new Intent(TransferEnterAccountActivity.this, TransferDetailsActivity.class);
+                                                intent.putExtra("receiverAccountNumber", accountNumber);
+                                                intent.putExtra("receiverName", name);
+                                                intent.putExtra("receiverUserId", userId);
+                                                intent.putExtra("bankName", selectedBank);
+                                                startActivity(intent);
+                                            } else {
+                                                // Có ID trong accounts nhưng không tìm thấy document bên users
+                                                tvError.setText("Dữ liệu người dùng bị lỗi");
+                                                tvError.setVisibility(View.VISIBLE);
+                                            }
+                                        } else {
+                                            tvError.setText("Lỗi khi lấy thông tin người dùng");
+                                            tvError.setVisibility(View.VISIBLE);
+                                        }
+                                    });
+                        } else {
+                            // Không tìm thấy số tài khoản trong collection accounts
+                            tvError.setText("Tài khoản người nhận không khả dụng");
+                            tvError.setVisibility(View.VISIBLE);
+                        }
+                    } else {
+                        tvError.setText("Lỗi kết nối server");
+                        tvError.setVisibility(View.VISIBLE);
+                    }
+                });
     }
 }

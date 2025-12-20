@@ -115,42 +115,47 @@
                 app:cardMaxElevation="5dp"
                 app:cardUseCompatPadding="true"
                 app:cardBackgroundColor="#FFFFFF">
-                    <ImageView
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:contentDescription="ic_search"
-                        android:layout_gravity="center_vertical"
-                        android:layout_marginStart="10dp"
-                        android:src="@drawable/ic_search"
+                <ImageView
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:contentDescription="ic_search"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginStart="10dp"
+                    android:src="@drawable/ic_search"
                     />
 
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/tilSearch"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilSearch"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Tìm kiếm người nhận yêu thích"
+                    app:boxBackgroundColor="@android:color/transparent"
+                    app:boxStrokeWidth="0dp"
+                    app:boxStrokeWidthFocused="0dp"
+                    android:textColorHint="#A3A3A3"
+                    app:hintTextColor="@color/text_input_hint_color"
+                    >
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:layout_marginStart="40dp"
+                        android:id="@+id/edtSearch"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Tìm kiếm người nhận yêu thích"
-                        app:boxBackgroundColor="@android:color/transparent"
-                        app:boxStrokeWidth="0dp"
-                        app:boxStrokeWidthFocused="0dp"
-                        android:textColorHint="#A3A3A3"
-                        app:hintTextColor="@color/text_input_hint_color"
-                        >
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:layout_marginStart="40dp"
-                            android:id="@+id/edtSearch"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:background="@color/white"
-                            android:fontFamily="@font/nunito_sans"
-                            android:inputType="textEmailAddress"
-                            android:textColor="@color/black"
-                            android:textCursorDrawable="@drawable/cursor_black"
-                            android:textSize="16sp" />
-                    </com.google.android.material.textfield.TextInputLayout>
+                        android:background="@color/white"
+                        android:fontFamily="@font/nunito_sans"
+                        android:inputType="textEmailAddress"
+                        android:textColor="@color/black"
+                        android:textCursorDrawable="@drawable/cursor_black"
+                        android:textSize="16sp" />
+                </com.google.android.material.textfield.TextInputLayout>
 
             </androidx.cardview.widget.CardView>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvSavedRecipients"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
 
             <!-- Saved Recipients List -->
             <LinearLayout

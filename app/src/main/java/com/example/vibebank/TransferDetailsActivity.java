@@ -1,103 +1,313 @@
 package com.example.vibebank;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
+import android.view.View;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
 
-import com.google.android.material.button.MaterialButton;
+import com.google.firebase.Timestamp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.Transaction;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class TransferDetailsActivity extends AppCompatActivity {
-    private ImageView btnBack;
-    private TextView txtRecipientBank, txtRecipientAccount, txtRecipientName;
-    private CheckBox cbSaveRecipient;
-    private EditText edtAmount, edtMessage;
-    private MaterialButton btnTransfer;
 
-    private String bank;
-    private String accountNumber;
-    private String accountName;
+    private TextView tvReceiverName, tvReceiverAccount, tvReceiverBank;
+    private EditText edtAmount, edtMessage;
+    private CheckBox cbSaveContact;
+    private Button btnTransfer;
+    private FirebaseFirestore db;
+    private String currentUserId = null;
+    private String senderName = "Người dùng ẩn danh";
+    private String receiverUid, receiverAccountNumber, receiverName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transfer_details);
 
-        // Initialize views
-        btnBack = findViewById(R.id.btnBack);
-        txtRecipientBank = findViewById(R.id.txtRecipientBank);
-        txtRecipientAccount = findViewById(R.id.txtRecipientAccount);
-        txtRecipientName = findViewById(R.id.txtRecipientName);
-        cbSaveRecipient = findViewById(R.id.cbSaveRecipient);
+        db = FirebaseFirestore.getInstance();
+
+//        currentUserId = FirebaseAuth.getInstance().getCurrentUser() != null ?
+//                FirebaseAuth.getInstance().getCurrentUser().getUid() : null;
+
+        // Lấy ID người dùng hiện tại
+        // 1. Thử lấy từ Firebase Auth trước
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        }
+
+        // 2. Nếu Firebase trả về null, lấy từ SharedPreferences (Backup)
+        if (currentUserId == null) {
+            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+            currentUserId = prefs.getString("current_user_id", null);
+        }
+
+        // 3. Kiểm tra lần cuối
+        if (currentUserId == null) {
+            Toast.makeText(this, "Lỗi: Không xác định được người dùng.", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+
+        if (currentUserId != null) {
+            fetchSenderInfo();
+        }
+
+        // Nhận dữ liệu
+        receiverAccountNumber = getIntent().getStringExtra("receiverAccountNumber");
+        receiverName = getIntent().getStringExtra("receiverName");
+        receiverUid = getIntent().getStringExtra("receiverUserId");
+        String bankName = getIntent().getStringExtra("bankName");
+
+        if (receiverUid == null || receiverAccountNumber == null) {
+            Toast.makeText(this, "Lỗi: Không tìm thấy thông tin người nhận", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        // Ánh xạ
+        tvReceiverBank = findViewById(R.id.txtRecipientBank);
+        tvReceiverName = findViewById(R.id.txtRecipientName);
+        tvReceiverAccount = findViewById(R.id.txtRecipientAccount);
         edtAmount = findViewById(R.id.edtAmount);
         edtMessage = findViewById(R.id.edtMessage);
+        cbSaveContact = findViewById(R.id.cbSaveRecipient);
         btnTransfer = findViewById(R.id.btnTransfer);
+        View btnBack = findViewById(R.id.btnBack);
 
-        // Get recipient info from intent
-        bank = getIntent().getStringExtra("bank");
-        accountNumber = getIntent().getStringExtra("accountNumber");
-        accountName = getIntent().getStringExtra("accountName");
+        // Setup UI
+        tvReceiverBank.setText(bankName != null ? bankName : "VibeBank");
+        tvReceiverAccount.setText(receiverAccountNumber);
+        tvReceiverName.setText(receiverName);
 
-        // Display recipient info
-        if (bank != null) txtRecipientBank.setText(bank);
-        if (accountNumber != null) txtRecipientAccount.setText(accountNumber);
-        if (accountName != null) txtRecipientName.setText(accountName);
+        // Kiểm tra người dùng đã tồn tại trong danh sách đã lưu
+        SharedPreferences prefs = getSharedPreferences("SavedRecipients", MODE_PRIVATE);
+        if (prefs.contains(receiverAccountNumber)) {
+            // Nếu số tài khoản này đã có trong danh sách đã lưu
+            cbSaveContact.setChecked(true);
+            cbSaveContact.setEnabled(false);
+        }
 
-        // Back button
         btnBack.setOnClickListener(v -> finish());
 
-        // Enable/disable transfer button based on amount input
-        edtAmount.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+        // Mở nút chuyển tiền khi nhập đủ
+        btnTransfer.setEnabled(true); // Đơn giản hóa cho demo
+        btnTransfer.setOnClickListener(v -> handleTransfer());
+    }
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                btnTransfer.setEnabled(s.length() > 0);
+    private void handleTransfer() {
+
+        if (currentUserId == null) {
+            Toast.makeText(this, "Lỗi: Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        if (receiverUid == null || receiverUid.isEmpty()) {
+            Toast.makeText(this, "Lỗi: Không tìm thấy ID người nhận. Vui lòng thử lại.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+
+        String amountStr = edtAmount.getText().toString();
+        String message = edtMessage.getText().toString();
+
+        if (amountStr.isEmpty()) {
+            edtAmount.setError("Vui lòng nhập số tiền");
+            return;
+        }
+
+        double amount = Double.parseDouble(amountStr);
+
+        // Kiểm tra số tiền tối thiểu
+        if (amount <= 0) {
+            edtAmount.setError("Số tiền phải lớn hơn 0");
+            return;
+        }
+
+        // 1. Lưu người nhận nếu chọn
+        if (cbSaveContact != null && cbSaveContact.isChecked()) {
+            SharedPreferences prefs = getSharedPreferences("SavedRecipients", MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+
+            String valueToSave = receiverName + ";" + receiverUid;
+
+            editor.putString(receiverAccountNumber, valueToSave);
+            editor.apply();
+        }
+
+        final DocumentReference senderRef = db.collection("accounts").document(currentUserId);
+        final DocumentReference receiverRef = db.collection("accounts").document(receiverUid);
+
+        // 2. Thực hiện Transaction trong Firestore
+        db.runTransaction((Transaction.Function<Void>) transaction -> {
+            // Đọc số dư người gửi
+            Double senderBalance = transaction.get(senderRef).getDouble("balance");
+            Double receiverBalance = transaction.get(receiverRef).getDouble("balance");
+
+            if (senderBalance == null) senderBalance = 0.0;
+            if (receiverBalance == null) receiverBalance = 0.0;
+
+            // Kiểm tra số dư
+            if (senderBalance < amount) {
+                throw new FirebaseFirestoreException("Insufficient funds", FirebaseFirestoreException.Code.ABORTED);
             }
 
-            @Override
-            public void afterTextChanged(Editable s) {}
-        });
+            // Tính toán
+            double newSenderBalance = senderBalance - amount;
+            double newReceiverBalance = receiverBalance + amount;
 
-        // Transfer button
-        btnTransfer.setOnClickListener(v -> {
-            String amount = edtAmount.getText().toString().trim();
-            String message = edtMessage.getText().toString().trim();
-            boolean saveRecipient = cbSaveRecipient.isChecked();
+            // Update số dư
+            transaction.update(senderRef, "balance", newSenderBalance);
+            transaction.update(receiverRef, "balance", newReceiverBalance);
 
-            if (amount.isEmpty()) {
-                Toast.makeText(this, "Vui lòng nhập số tiền", Toast.LENGTH_SHORT).show();
-                return;
+
+            String transId = UUID.randomUUID().toString();
+
+            // Ghi lịch sử cho Người Gửi
+            Map<String, Object> senderLog = new HashMap<>();
+            senderLog.put("userId", currentUserId); // Người sở hữu log này
+            senderLog.put("type", "SENT");
+            senderLog.put("amount", amount);
+            senderLog.put("content", message);
+            senderLog.put("timestamp", Timestamp.now());
+            senderLog.put("relatedAccountName", receiverName);
+            senderLog.put("relatedAccountNumber", receiverAccountNumber);
+            senderLog.put("transactionId", transId);
+
+            // Ghi lịch sử cho Người Nhận
+            Map<String, Object> receiverLog = new HashMap<>();
+            receiverLog.put("userId", receiverUid);
+            receiverLog.put("type", "RECEIVED");
+            receiverLog.put("amount", amount);
+            receiverLog.put("content", message);
+            receiverLog.put("timestamp", Timestamp.now());
+            receiverLog.put("relatedAccountName", "Người gửi ẩn danh");
+            receiverLog.put("transactionId", transId);
+
+            DocumentReference senderLogRef = senderRef.collection("transactions").document(transId);
+            DocumentReference receiverLogRef = receiverRef.collection("transactions").document(transId);
+
+            transaction.set(senderLogRef, senderLog);
+            transaction.set(receiverLogRef, receiverLog);
+
+            return null;
+        }).addOnSuccessListener(aVoid -> {
+            // Thành công
+            // Thông báo người gửi
+            sendNotification("Biến động số dư", "Tài khoản -" + amount + " VND. ND: " + message);
+
+            // Thông báo người nhận
+            Map<String, Object> notification = new HashMap<>();
+            notification.put("userId", receiverUid);
+            notification.put("title", "Biến động số dư");
+            notification.put("message", "Tài khoản " + receiverAccountNumber + " được cộng " + amountStr + " VND từ " + senderName);
+            notification.put("timestamp", new Date());
+            notification.put("isRead", false);
+
+            db.collection("notifications")
+                    .add(notification)
+                    .addOnFailureListener(e -> {
+                        // Log lỗi nếu cần, nhưng không chặn luồng chính vì tiền đã chuyển xong rồi
+                    });
+
+            Intent intent = new Intent(TransferDetailsActivity.this, TransferResultActivity.class);
+            intent.putExtra("amount", amount);
+            intent.putExtra("receiverName", receiverName);
+            intent.putExtra("receiverAccount", receiverAccountNumber);
+            intent.putExtra("content", message);
+            intent.putExtra("refId", UUID.randomUUID().toString().substring(0, 10).toUpperCase());
+            startActivity(intent);
+            finish();
+
+        }).addOnFailureListener(e -> {
+            if (e.getMessage() != null && e.getMessage().contains("Insufficient funds")) {
+                showErrorDialog("Số dư tài khoản không đủ để thực hiện thao tác");
+            } else {
+                showErrorDialog("Giao dịch thất bại: " + e.getMessage());
             }
-
-            // Simulate transfer processing
-            processTransfer(amount, message, saveRecipient);
         });
     }
 
-    private void processTransfer(String amount, String message, boolean saveRecipient) {
-        // In real app, call API here to process transfer
-        // For now, simulate success and go to result screen
+    private void showErrorDialog(String msg) {
+        new AlertDialog.Builder(this)
+                .setTitle("Thông báo")
+                .setMessage(msg)
+                .setPositiveButton("Đóng", null)
+                .show();
+    }
 
-        Intent intent = new Intent(this, TransferResultActivity.class);
-        intent.putExtra("success", true);
-        intent.putExtra("amount", amount);
-        intent.putExtra("bank", bank);
-        intent.putExtra("accountNumber", accountNumber);
-        intent.putExtra("accountName", accountName);
-        intent.putExtra("message", message);
-        intent.putExtra("saveRecipient", saveRecipient);
-        startActivity(intent);
+    private void sendNotification(String title, String message) {
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        String channelId = "balance_channel";
 
-        // Clear the back stack so user can't go back to transfer form
-        finish();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(channelId, "Balance Updates", NotificationManager.IMPORTANCE_HIGH);
+            notificationManager.createNotificationChannel(channel);
+        }
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true);
+
+        int notificationId = (int) System.currentTimeMillis();
+        notificationManager.notify(notificationId, builder.build());
+    }
+
+    // Lấy thông tin người gửi
+    private void fetchSenderInfo() {
+        if (currentUserId == null) return;
+        db.collection("users")
+                .document(currentUserId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot userDoc = task.getResult();
+                        if (userDoc.exists()) {
+                            // Lấy field "full_name" như trong đoạn mã mẫu
+                            String name = userDoc.getString("full_name");
+
+                            if (name != null && !name.isEmpty()) {
+                                senderName = name;
+
+                                if (edtMessage.getText().toString().isEmpty() ||
+                                        edtMessage.getText().toString().equals("Người dùng ẩn danhchuyển tiền")) {
+
+                                    edtMessage.setText(senderName + " chuyển tiền");
+                                }
+                            }
+                        } else {
+                            Toast.makeText(this, "Dữ liệu người dùng bị lỗi", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        // Lỗi kết nối server
+                        Toast.makeText(this, "Lỗi khi lấy thông tin người gửi", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 }
