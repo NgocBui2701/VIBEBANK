@@ -7,10 +7,13 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,6 +47,8 @@ public class TransferDetailsActivity extends AppCompatActivity {
     private String currentUserId = null;
     private String senderName = "Người dùng ẩn danh";
     private String receiverUid, receiverAccountNumber, receiverName;
+    private LinearLayout llSuggestions;
+    private TextView tvSuggest1, tvSuggest2, tvSuggest3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,10 +105,17 @@ public class TransferDetailsActivity extends AppCompatActivity {
         btnTransfer = findViewById(R.id.btnTransfer);
         View btnBack = findViewById(R.id.btnBack);
 
+        llSuggestions = findViewById(R.id.llSuggestions);
+        tvSuggest1 = findViewById(R.id.tvSuggest1);
+        tvSuggest2 = findViewById(R.id.tvSuggest2);
+        tvSuggest3 = findViewById(R.id.tvSuggest3);
+
         // Setup UI
         tvReceiverBank.setText(bankName != null ? bankName : "VibeBank");
         tvReceiverAccount.setText(receiverAccountNumber);
         tvReceiverName.setText(receiverName);
+
+        setupMoneyInput();
 
         // Kiểm tra người dùng đã tồn tại trong danh sách đã lưu
         SharedPreferences prefs = getSharedPreferences("SavedRecipients", MODE_PRIVATE);
@@ -118,6 +130,93 @@ public class TransferDetailsActivity extends AppCompatActivity {
         // Mở nút chuyển tiền khi nhập đủ
         btnTransfer.setEnabled(true); // Đơn giản hóa cho demo
         btnTransfer.setOnClickListener(v -> handleTransfer());
+    }
+
+    private void setupMoneyInput() {
+        edtAmount.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                edtAmount.removeTextChangedListener(this);
+
+                try {
+                    String originalString = s.toString();
+                    String cleanString = originalString.replace(".", "");
+
+                    if (!cleanString.isEmpty()) {
+                        double parsed = Double.parseDouble(cleanString);
+                        String formatted = formatMoney(parsed); // Dùng hàm formatMoney đã viết ở bước trước
+
+                        edtAmount.setText(formatted);
+                        edtAmount.setSelection(formatted.length());
+
+                        updateSuggestions(parsed);
+                    } else {
+                        // Nếu xóa hết thì ẩn gợi ý
+                        llSuggestions.setVisibility(View.GONE);
+                    }
+                } catch (NumberFormatException e) {
+                    e.printStackTrace();
+                }
+
+                edtAmount.addTextChangedListener(this);
+            }
+        });
+
+        View.OnClickListener suggestionListener = v -> {
+            TextView tv = (TextView) v;
+            String value = tv.getText().toString();
+            edtAmount.setText(value);
+            edtAmount.setSelection(value.length());
+        };
+
+        tvSuggest1.setOnClickListener(suggestionListener);
+        tvSuggest2.setOnClickListener(suggestionListener);
+        tvSuggest3.setOnClickListener(suggestionListener);
+    }
+
+    private static final double MAX_SUGGESTION_LIMIT = 999999999;
+    private void updateSuggestions(double currentAmount) {
+        if (currentAmount <= 0) {
+            llSuggestions.setVisibility(View.GONE);
+            return;
+        }
+
+        double s1 = currentAmount * 1000;
+        double s2 = currentAmount * 10000;
+        double s3 = currentAmount * 100000;
+
+        if (s1 > MAX_SUGGESTION_LIMIT) {
+            llSuggestions.setVisibility(View.GONE);
+            return;
+        }
+
+        llSuggestions.setVisibility(View.VISIBLE);
+
+        tvSuggest1.setVisibility(View.VISIBLE);
+        tvSuggest2.setVisibility(View.VISIBLE);
+        tvSuggest3.setVisibility(View.VISIBLE);
+
+        tvSuggest1.setText(formatMoney(s1));
+
+        // Kiểm tra s2
+        if (s2 > MAX_SUGGESTION_LIMIT) {
+            tvSuggest2.setVisibility(View.GONE);
+            tvSuggest3.setVisibility(View.GONE);
+        } else {
+            tvSuggest2.setText(formatMoney(s2));
+
+            if (s3 > MAX_SUGGESTION_LIMIT) {
+                tvSuggest3.setVisibility(View.GONE);
+            } else {
+                tvSuggest3.setText(formatMoney(s3));
+            }
+        }
     }
 
     private String formatMoney(double amount) {
@@ -145,7 +244,9 @@ public class TransferDetailsActivity extends AppCompatActivity {
             return;
         }
 
-        double amount = Double.parseDouble(amountStr);
+        String cleanAmountStr = amountStr.replace(".", "");
+
+        double amount = Double.parseDouble(cleanAmountStr);
 
         String formattedAmount = formatMoney(amount);
 
@@ -212,7 +313,7 @@ public class TransferDetailsActivity extends AppCompatActivity {
             receiverLog.put("amount", amount);
             receiverLog.put("content", message);
             receiverLog.put("timestamp", Timestamp.now());
-            receiverLog.put("relatedAccountName", "Người gửi ẩn danh");
+            receiverLog.put("relatedAccountName", senderName);
             receiverLog.put("transactionId", transId);
 
             DocumentReference senderLogRef = senderRef.collection("transactions").document(transId);
