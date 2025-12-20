@@ -39,15 +39,17 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
 
         // Show date header if different from previous
         String currentDateHeader = transaction.getDateHeader();
-        if (position == 0 || !currentDateHeader.equals(lastDateHeader)) {
+        boolean showHeader = position == 0 ||
+                !currentDateHeader.equals(transactions.get(position - 1).getDateHeader());
+
+        if (showHeader) {
             holder.txtDateHeader.setVisibility(View.VISIBLE);
             holder.txtDateHeader.setText(currentDateHeader);
-            lastDateHeader = currentDateHeader;
         } else {
             holder.txtDateHeader.setVisibility(View.GONE);
         }
 
-        // Set transaction details
+        // 2. Gán dữ liệu
         holder.txtName.setText(transaction.getName());
         holder.txtDescription.setText(transaction.getDescription());
         holder.txtTime.setText(transaction.getTimeString());
@@ -59,13 +61,17 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         if (transaction.isIncome()) {
             holder.txtAmount.setText("+ " + formattedAmount);
             holder.txtAmount.setTextColor(context.getResources().getColor(android.R.color.holo_green_dark));
+
             holder.imgIcon.setImageResource(R.drawable.ic_arrow_down);
             holder.imgIcon.setColorFilter(context.getResources().getColor(android.R.color.holo_green_dark));
+            holder.cardIcon.setStrokeColor(context.getResources().getColor(android.R.color.holo_green_light));
         } else {
             holder.txtAmount.setText("- " + formattedAmount);
             holder.txtAmount.setTextColor(context.getResources().getColor(android.R.color.holo_red_dark));
+
             holder.imgIcon.setImageResource(R.drawable.ic_arrow_up);
             holder.imgIcon.setColorFilter(context.getResources().getColor(android.R.color.holo_red_dark));
+            holder.cardIcon.setStrokeColor(context.getResources().getColor(android.R.color.holo_red_light));
         }
     }
 
@@ -77,6 +83,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView txtDateHeader, txtName, txtDescription, txtTime, txtAmount;
         ImageView imgIcon;
+        com.google.android.material.card.MaterialCardView cardIcon;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -86,6 +93,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
             txtTime = itemView.findViewById(R.id.txtTime);
             txtAmount = itemView.findViewById(R.id.txtAmount);
             imgIcon = itemView.findViewById(R.id.imgIcon);
+            cardIcon = itemView.findViewById(R.id.cardIcon);
         }
     }
 }

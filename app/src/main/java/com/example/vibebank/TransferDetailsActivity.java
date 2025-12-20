@@ -27,8 +27,10 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.Transaction;
 
+import java.text.NumberFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -118,6 +120,11 @@ public class TransferDetailsActivity extends AppCompatActivity {
         btnTransfer.setOnClickListener(v -> handleTransfer());
     }
 
+    private String formatMoney(double amount) {
+        NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
+        return formatter.format(amount);
+    }
+
     private void handleTransfer() {
 
         if (currentUserId == null) {
@@ -130,7 +137,6 @@ public class TransferDetailsActivity extends AppCompatActivity {
             return;
         }
 
-
         String amountStr = edtAmount.getText().toString();
         String message = edtMessage.getText().toString();
 
@@ -140,6 +146,8 @@ public class TransferDetailsActivity extends AppCompatActivity {
         }
 
         double amount = Double.parseDouble(amountStr);
+
+        String formattedAmount = formatMoney(amount);
 
         // Kiểm tra số tiền tối thiểu
         if (amount <= 0) {
@@ -217,13 +225,13 @@ public class TransferDetailsActivity extends AppCompatActivity {
         }).addOnSuccessListener(aVoid -> {
             // Thành công
             // Thông báo người gửi
-            sendNotification("Biến động số dư", "Tài khoản -" + amount + " VND. ND: " + message);
+            sendNotification("Biến động số dư", "Tài khoản -" + formattedAmount + " VND. Nội dung: " + message);
 
             // Thông báo người nhận
             Map<String, Object> notification = new HashMap<>();
             notification.put("userId", receiverUid);
             notification.put("title", "Biến động số dư");
-            notification.put("message", "Tài khoản " + receiverAccountNumber + " được cộng " + amountStr + " VND từ " + senderName);
+            notification.put("message", "Tài khoản " + receiverAccountNumber + ": +" + formattedAmount + " VND từ " + senderName + ". Nội dung: " + message);
             notification.put("timestamp", new Date());
             notification.put("isRead", false);
 

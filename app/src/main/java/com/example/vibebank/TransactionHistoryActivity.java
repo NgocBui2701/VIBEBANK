@@ -1,5 +1,6 @@
 package com.example.vibebank;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
@@ -8,6 +9,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -17,6 +19,11 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.Timestamp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -38,20 +45,46 @@ public class TransactionHistoryActivity extends AppCompatActivity {
     private LinearLayout layoutEmpty;
 
     private TransactionAdapter adapter;
-    private List<Transaction> allTransactions;
-    private List<Transaction> filteredTransactions;
-    
-    private int selectedDays = 7; // 7, 30, 60, -1 for all
-    private String selectedType = "all"; // all, receive, send
+    private List<Transaction> allTransactions = new ArrayList<>();;
+    private List<Transaction> displayTransactions = new ArrayList<>();
+
+    private int currentDayFilter = -1; // -1: All, 7, 30, 60
+    private String currentTypeFilter = "ALL"; // ALL, RECEIVED, SENT
+    private String currentSearchQuery = "";
+
+    private FirebaseFirestore db;
+    private String currentUserId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transaction_history);
 
+        db = FirebaseFirestore.getInstance();
+        // Lấy ID người dùng hiện tại
+        // 1. Thử lấy từ Firebase Auth trước
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        }
+
+        // 2. Nếu Firebase trả về null, lấy từ SharedPreferences (Backup)
+        if (currentUserId == null) {
+            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+            currentUserId = prefs.getString("current_user_id", null);
+        }
+
+        // 3. Kiểm tra lần cuối
+        if (currentUserId == null) {
+            Toast.makeText(this, "Lỗi: Không xác định được người dùng.", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+
         initViews();
         setupListeners();
-        loadTransactions();
+        setupRecycler();
+
+        loadData();
     }
 
     private void initViews() {
@@ -65,6 +98,7 @@ public class TransactionHistoryActivity extends AppCompatActivity {
         btnAllTime = findViewById(R.id.btnAllTime);
         
         edtSearch = findViewById(R.id.edtSearch);
+
         chipAll = findViewById(R.id.chipAll);
         chipReceive = findViewById(R.id.chipReceive);
         chipSend = findViewById(R.id.chipSend);
@@ -73,46 +107,71 @@ public class TransactionHistoryActivity extends AppCompatActivity {
         swipeRefresh = findViewById(R.id.swipeRefresh);
         layoutEmpty = findViewById(R.id.layoutEmpty);
 
+        // Mặc định chọn Tất cả thời gian
+        updateTimeFilterUI(btnAllTime);
+    }
+
+    private void setupRecycler() {
+        adapter = new TransactionAdapter(displayTransactions, this);
         recyclerTransactions.setLayoutManager(new LinearLayoutManager(this));
-        allTransactions = new ArrayList<>();
-        filteredTransactions = new ArrayList<>();
-        adapter = new TransactionAdapter(filteredTransactions, this);
         recyclerTransactions.setAdapter(adapter);
     }
 
     private void setupListeners() {
         btnBack.setOnClickListener(v -> finish());
 
-        // Time filter buttons
-        btn7Days.setOnClickListener(v -> selectTimeFilter(7, btn7Days));
-        btn30Days.setOnClickListener(v -> selectTimeFilter(30, btn30Days));
-        btn60Days.setOnClickListener(v -> selectTimeFilter(60, btn60Days));
-        btnAllTime.setOnClickListener(v -> selectTimeFilter(-1, btnAllTime));
+        swipeRefresh.setOnRefreshListener(this::loadData);
 
-        // Type filter chips
-        chipAll.setOnClickListener(v -> {
-            selectedType = "all";
+        btn7Days.setOnClickListener(v -> {
+            currentDayFilter = 7;
+            updateTimeFilterUI(btn7Days);
             filterTransactions();
         });
-        chipReceive.setOnClickListener(v -> {
-            selectedType = "receive";
+        btn30Days.setOnClickListener(v -> {
+            currentDayFilter = 30;
+            updateTimeFilterUI(btn30Days);
             filterTransactions();
         });
-        chipSend.setOnClickListener(v -> {
-            selectedType = "send";
+        btn60Days.setOnClickListener(v -> {
+            currentDayFilter = 60;
+            updateTimeFilterUI(btn60Days);
             filterTransactions();
+        });
+        btnAllTime.setOnClickListener(v -> {
+            currentDayFilter = -1;
+            updateTimeFilterUI(btnAllTime);
+            filterTransactions();
+        });
+
+        // Type Filters (Chips)
+        chipAll.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                currentTypeFilter = "ALL";
+                filterTransactions();
+            }
+        });
+        chipReceive.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                currentTypeFilter = "RECEIVED";
+                filterTransactions();
+            }
+        });
+        chipSend.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                currentTypeFilter = "SENT";
+                filterTransactions();
+            }
         });
 
         // Search
         edtSearch.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
+                currentSearchQuery = s.toString().toLowerCase().trim();
                 filterTransactions();
             }
-
             @Override
             public void afterTextChanged(Editable s) {}
         });
@@ -120,119 +179,116 @@ public class TransactionHistoryActivity extends AppCompatActivity {
         // Swipe to refresh
         swipeRefresh.setOnRefreshListener(() -> {
             new Handler().postDelayed(() -> {
-                loadTransactions();
+                loadData();
                 swipeRefresh.setRefreshing(false);
             }, 1000);
         });
     }
 
-    private void selectTimeFilter(int days, MaterialButton selectedButton) {
-        selectedDays = days;
-
-        // Reset all buttons
-        resetButtonStyle(btn7Days);
-        resetButtonStyle(btn30Days);
-        resetButtonStyle(btn60Days);
-        resetButtonStyle(btnAllTime);
-
-        // Highlight selected
-        selectedButton.setBackgroundColor(getResources().getColor(android.R.color.black));
-        selectedButton.setTextColor(getResources().getColor(android.R.color.white));
-
-        filterTransactions();
-    }
-
-    private void resetButtonStyle(MaterialButton button) {
-        button.setBackgroundColor(getResources().getColor(android.R.color.white));
-        button.setTextColor(getResources().getColor(android.R.color.black));
-    }
-
-    private void loadTransactions() {
-        // Sample data - Replace with actual data from database
-        allTransactions.clear();
-        
-        Calendar cal = Calendar.getInstance();
-        
-        // Today's transactions
-        allTransactions.add(new Transaction("BUI THI BICH NGOC", "Chuyển tiền cơm Khói", 
-            30000, true, cal.getTime(), "receive"));
-        allTransactions.add(new Transaction("NGUYEN QUOC BAO", "Chuyển tiền cơm Khói", 
-            -30000, false, cal.getTime(), "send"));
-
-        // Yesterday
-        cal.add(Calendar.DAY_OF_MONTH, -1);
-        allTransactions.add(new Transaction("NGUYEN ANH KIET", "Chuyển tiền Ngo gia", 
-            30000, true, cal.getTime(), "receive"));
-        allTransactions.add(new Transaction("NGUYEN QUOC BAO", "Ba roi trung", 
-            -35000, false, cal.getTime(), "send"));
-
-        // 3 days ago
-        cal.add(Calendar.DAY_OF_MONTH, -2);
-        allTransactions.add(new Transaction("TRAN VAN AN", "Thanh toán hóa đơn", 
-            50000, true, cal.getTime(), "receive"));
-        
-        // 10 days ago
-        cal.add(Calendar.DAY_OF_MONTH, -7);
-        allTransactions.add(new Transaction("LE THI MAI", "Trả tiền cafe", 
-            -45000, false, cal.getTime(), "send"));
-
-        // 35 days ago
-        cal.add(Calendar.DAY_OF_MONTH, -25);
-        allTransactions.add(new Transaction("PHAM MINH TU", "Chia tiền ăn", 
-            80000, true, cal.getTime(), "receive"));
-
-        filterTransactions();
-    }
-
-    private void filterTransactions() {
-        filteredTransactions.clear();
-        
-        Calendar cutoffDate = Calendar.getInstance();
-        if (selectedDays > 0) {
-            cutoffDate.add(Calendar.DAY_OF_MONTH, -selectedDays);
+    private void loadData() {
+        if (currentUserId == null) {
+            swipeRefresh.setRefreshing(false);
+            return;
         }
 
-        String searchQuery = edtSearch.getText().toString().toLowerCase().trim();
+        swipeRefresh.setRefreshing(true);
+
+        // Truy vấn vào sub-collection "transactions" của account
+        db.collection("accounts").document(currentUserId)
+                .collection("transactions")
+                .orderBy("timestamp", Query.Direction.DESCENDING) // Sắp xếp mới nhất trước
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    allTransactions.clear();
+
+                    for (DocumentSnapshot doc : queryDocumentSnapshots) {
+                        try {
+                            String type = doc.getString("type"); // "SENT" hoặc "RECEIVED"
+                            Double amount = doc.getDouble("amount");
+                            String content = doc.getString("content");
+                            String relatedName = doc.getString("relatedAccountName");
+                            Timestamp timestamp = doc.getTimestamp("timestamp");
+
+                            if (amount != null && type != null) {
+                                allTransactions.add(new Transaction(
+                                        relatedName != null ? relatedName : "Giao dịch",
+                                        content != null ? content : "",
+                                        amount.longValue(),
+                                        "RECEIVED".equals(type), // isIncome nếu type là RECEIVED
+                                        timestamp != null ? timestamp.toDate() : new Date(),
+                                        type
+                                ));
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    // Sau khi tải xong thì lọc và hiển thị
+                    filterTransactions();
+                    swipeRefresh.setRefreshing(false);
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Lỗi tải dữ liệu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    swipeRefresh.setRefreshing(false);
+                });
+    }
+
+    // Logic lọc trung tâm: Lọc theo Thời gian, Loại, và Tìm kiếm cùng lúc
+    private void filterTransactions() {
+        displayTransactions.clear();
 
         long totalIncome = 0;
         long totalExpense = 0;
 
-        for (Transaction transaction : allTransactions) {
-            // Filter by time
-            if (selectedDays > 0 && transaction.getDate().before(cutoffDate.getTime())) {
-                continue;
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+
+        // Xác định mốc thời gian lọc
+        Date filterDateLimit = null;
+        if (currentDayFilter != -1) {
+            cal.add(Calendar.DAY_OF_YEAR, -currentDayFilter);
+            filterDateLimit = cal.getTime();
+        }
+
+        for (Transaction trans : allTransactions) {
+            // 1. Lọc theo Thời gian
+            if (filterDateLimit != null && trans.getDate().before(filterDateLimit)) {
+                continue; // Bỏ qua nếu cũ hơn mốc thời gian
             }
 
-            // Filter by type
-            if (!selectedType.equals("all")) {
-                if (!transaction.getType().equals(selectedType)) {
-                    continue;
-                }
+            // 2. Lọc theo Loại (All/Income/Expense)
+            if (!currentTypeFilter.equals("ALL")) {
+                if (currentTypeFilter.equals("RECEIVED") && !trans.isIncome()) continue;
+                if (currentTypeFilter.equals("SENT") && trans.isIncome()) continue;
             }
 
-            // Filter by search
-            if (!searchQuery.isEmpty()) {
-                if (!transaction.getName().toLowerCase().contains(searchQuery) &&
-                    !transaction.getDescription().toLowerCase().contains(searchQuery)) {
-                    continue;
-                }
+            // 3. Lọc theo Tìm kiếm (Tên hoặc Nội dung)
+            if (!currentSearchQuery.isEmpty()) {
+                boolean matchName = trans.getName().toLowerCase().contains(currentSearchQuery);
+                boolean matchDesc = trans.getDescription().toLowerCase().contains(currentSearchQuery);
+                if (!matchName && !matchDesc) continue;
             }
 
-            filteredTransactions.add(transaction);
+            // Thỏa mãn tất cả điều kiện -> Thêm vào list hiển thị
+            displayTransactions.add(trans);
 
-            // Calculate totals
-            if (transaction.isIncome()) {
-                totalIncome += transaction.getAmount();
+            if (trans.isIncome()) {
+                totalIncome += trans.getAmount();
             } else {
-                totalExpense += Math.abs(transaction.getAmount());
+                totalExpense += trans.getAmount();
             }
         }
 
-        updateSummary(totalIncome, totalExpense);
+        // Cập nhật UI
         adapter.notifyDataSetChanged();
-        
-        // Show/hide empty state
-        if (filteredTransactions.isEmpty()) {
+        updateSummary(totalIncome, totalExpense);
+
+        // Show/Hide Empty state
+        if (displayTransactions.isEmpty()) {
             layoutEmpty.setVisibility(View.VISIBLE);
             recyclerTransactions.setVisibility(View.GONE);
         } else {
@@ -246,6 +302,23 @@ public class TransactionHistoryActivity extends AppCompatActivity {
         
         txtTotalIncome.setText("+ " + formatter.format(income) + " đ");
         txtTotalExpense.setText("- " + formatter.format(expense) + " đ");
+    }
+
+    private void updateTimeFilterUI(MaterialButton selectedBtn) {
+        // Reset style
+        btn7Days.setStrokeColor(getColorStateList(R.color.gray_transaction));
+        btn30Days.setStrokeColor(getColorStateList(R.color.gray_transaction));
+        btn60Days.setStrokeColor(getColorStateList(R.color.gray_transaction));
+        btnAllTime.setStrokeColor(getColorStateList(R.color.gray_transaction));
+
+        btn7Days.setBackgroundColor(getColor(R.color.white));
+        btn30Days.setBackgroundColor(getColor(R.color.white));
+        btn60Days.setBackgroundColor(getColor(R.color.white));
+        btnAllTime.setBackgroundColor(getColor(R.color.white));
+
+        // Set selected style
+        selectedBtn.setStrokeColor(getColorStateList(R.color.blue_transaction));
+        selectedBtn.setBackgroundColor(getColor(R.color.blue_transaction));
     }
 
     // Transaction model class
