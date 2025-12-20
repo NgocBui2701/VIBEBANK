@@ -3,34 +3,33 @@ package com.example.vibebank.ui.register;
 import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Rect;
 import android.os.Bundle;
-import android.view.MotionEvent;
+import android.text.InputType;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.EditText;
-import android.widget.Toast;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.vibebank.R;
+import com.example.vibebank.ui.base.BaseActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
-public class Register2Activity extends AppCompatActivity {
+public class Register2Activity extends BaseActivity {
     private MaterialButton btnNext;
     private TextInputEditText edtFullName, edtBirthDate, edtIssueDate, edtAddress;
     private AutoCompleteTextView edtGender;
     private RegisterViewModel viewModel;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+    private static final Pattern NAME_PATTERN = Pattern.compile("^[\\p{L} .'-]+$");
+    private static final Pattern ADDRESS_PATTERN = Pattern.compile("^[\\p{L}0-9\\s,./-]+$");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,9 +65,21 @@ public class Register2Activity extends AppCompatActivity {
         edtAddress = findViewById(R.id.edtAddress);
         edtGender = findViewById(R.id.edtGender);
 
+        edtFullName.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        edtFullName.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                validateName(true);
+            }
+        });
+
         String[] genders = {"Nam", "Nữ"};
         edtGender.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, genders));
         edtGender.setKeyListener(null);
+        edtGender.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                validateGender(true);
+            }
+        });
 
         edtBirthDate.setKeyListener(null);
         edtIssueDate.setKeyListener(null);
@@ -80,26 +91,127 @@ public class Register2Activity extends AppCompatActivity {
         View.OnFocusChangeListener focusListener = (v, hasFocus) -> { if(hasFocus) showDatePicker((TextInputEditText)v); };
         edtBirthDate.setOnFocusChangeListener(focusListener);
         edtIssueDate.setOnFocusChangeListener(focusListener);
+
+        edtBirthDate.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                validateBirthDate(true);
+            }
+        });
+
+        edtIssueDate.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                validateIssueDate(true);
+            }
+        });
+
+        edtAddress.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                validateAddress(true);
+            }
+        });
+    }
+
+    private boolean validateName(boolean showError) {
+        String name = edtFullName.getText().toString().trim();
+
+        if (name.isEmpty()) {
+            if (showError) edtFullName.setError("Vui lòng nhập họ và tên");
+            return false;
+        }
+
+        if (name.length() < 4) {
+            edtFullName.setError("Tên quá ngắn");
+            return false;
+        }
+
+        if (!name.contains(" ")) {
+            edtFullName.setError("Vui lòng nhập đầy đủ Họ và Tên");
+            return false;
+        }
+
+        if (!NAME_PATTERN.matcher(name).matches()) {
+            edtFullName.setError("Tên không được chứa số hoặc ký tự đặc biệt");
+            return false;
+        }
+
+        edtFullName.setError(null);
+        return true;
+    }
+
+    private boolean validateGender(boolean showError) {
+        String gender = edtGender.getText().toString();
+        if (gender.isEmpty()) {
+            if (showError) edtGender.setError("Chọn giới tính");
+            return false;
+        }
+        edtGender.setError(null);
+        return true;
+    }
+
+    private boolean validateAddress(boolean showError) {
+        String address = edtAddress.getText().toString().trim();
+
+        if (address.isEmpty()) {
+            if (showError) edtAddress.setError("Nhập địa chỉ");
+            return false;
+        }
+
+        if (address.length() < 10) {
+            edtAddress.setError("Địa chỉ quá ngắn. Vui lòng ghi rõ Số nhà, Đường, Phường/Xã...");
+            return false;
+        }
+
+        if (!ADDRESS_PATTERN.matcher(address).matches()) {
+            edtAddress.setError("Địa chỉ chứa ký tự không hợp lệ");
+            return false;
+        }
+
+        edtAddress.setError(null);
+        return true;
+    }
+
+    private boolean validateBirthDate(boolean showError) {
+        String dob = edtBirthDate.getText().toString();
+
+        if (dob.isEmpty()) {
+            if (showError) edtBirthDate.setError("Chọn ngày sinh");
+            return false;
+        }
+
+        if (!isAdult(dob)) {
+            edtBirthDate.setError("Phải đủ 18 tuổi");
+            return false;
+        }
+
+        edtBirthDate.setError(null);
+        return true;
+    }
+
+    private boolean validateIssueDate(boolean showError) {
+        String issue = edtIssueDate.getText().toString();
+
+        if (issue.isEmpty()) {
+            if (showError) edtIssueDate.setError("Chọn ngày cấp");
+            return false;
+        }
+
+        if (!isValidIssueDate(issue, edtBirthDate.getText().toString())) {
+            edtIssueDate.setError("Ngày cấp không hợp lệ");
+            return false;
+        }
+
+        edtIssueDate.setError(null);
+        return true;
     }
 
     private boolean validateInputs() {
-        String name = edtFullName.getText().toString().trim();
-        String dob = edtBirthDate.getText().toString();
-        String gender = edtGender.getText().toString();
-        String address = edtAddress.getText().toString().trim();
-        String issue = edtIssueDate.getText().toString();
+        boolean n = validateName(false);
+        boolean g = validateGender(false);
+        boolean a = validateAddress(false);
+        boolean b = validateBirthDate(false);
+        boolean i = validateIssueDate(false);
 
-        if (name.length() < 4) { edtFullName.setError("Họ tên quá ngắn"); return false; }
-        if (gender.isEmpty()) { edtGender.setError("Chọn giới tính"); return false; } else edtGender.setError(null);
-        if (address.isEmpty()) { edtAddress.setError("Nhập địa chỉ"); return false; }
-
-        if (dob.isEmpty()) { edtBirthDate.setError("Chọn ngày sinh"); return false; }
-        if (!isAdult(dob)) { edtBirthDate.setError("Phải đủ 18 tuổi"); return false; } else edtBirthDate.setError(null);
-
-        if (issue.isEmpty()) { edtIssueDate.setError("Chọn ngày cấp"); return false; }
-        if (!isValidIssueDate(issue, dob)) { edtIssueDate.setError("Ngày cấp không hợp lệ"); return false; } else edtIssueDate.setError(null);
-
-        return true;
+        return n && g && a && b && i;
     }
 
     private boolean isAdult(String dateStr) {
@@ -134,22 +246,5 @@ public class Register2Activity extends AppCompatActivity {
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH));
         dpd.getDatePicker().setMaxDate(System.currentTimeMillis());
         dpd.show();
-    }
-
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent event) {
-        if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            View v = getCurrentFocus();
-            if (v instanceof EditText) {
-                Rect outRect = new Rect();
-                v.getGlobalVisibleRect(outRect);
-                if (!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
-                    v.clearFocus();
-                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                    if (imm != null) imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
-                }
-            }
-        }
-        return super.dispatchTouchEvent(event);
     }
 }

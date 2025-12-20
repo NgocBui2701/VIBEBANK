@@ -52,11 +52,11 @@
             android:windowSoftInputMode="adjustPan" />
         <activity android:name=".ui.register.Register5Activity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".ForgotPasswordActivity" 
+        <activity android:name=".ui.forgotpassword.ForgotPasswordActivity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".ResetPasswordActivity" 
+        <activity android:name=".ui.forgotpassword.ResetPasswordActivity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".HomeActivity" />
+        <activity android:name=".ui.home.HomeActivity" />
         <activity android:name=".AccountManagementActivity" 
             android:windowSoftInputMode="adjustPan" />
         <activity android:name=".TransferActivity" 

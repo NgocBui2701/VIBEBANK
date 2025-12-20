@@ -9,6 +9,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.vibebank.ui.login.LoginActivity;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.button.MaterialButton;
 
@@ -197,18 +198,16 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void showLogoutConfirmation() {
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Đăng xuất")
-                .setMessage("Bạn có chắc chắn muốn đăng xuất?")
-                .setPositiveButton("Đăng xuất", (dialog, which) -> {
-                    // TODO: Clear user session and navigate to login
-                    Intent loginIntent = new Intent(this, LoginActivity.class);
-                    loginIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(loginIntent);
-                    finish();
-                })
-                .setNegativeButton("Hủy", null)
-                .show();
+//        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+//                .setTitle("Đăng xuất")
+//                .setMessage("Bạn có chắc chắn muốn đăng xuất?")
+//                .setPositiveButton("Đăng xuất", (d, w) -> sessionManager.logoutUser())
+//                .setNegativeButton("Hủy", null)
+//                .show();
+//        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+//                .setTextColor(android.graphics.Color.parseColor("#4CAF50"));
+//        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE)
+//                .setTextColor(android.graphics.Color.parseColor("#FF0000"));
     }
 
     private void showToast(String message) {

@@ -1,37 +1,57 @@
-package com.example.vibebank.ui.register;
+package com.example.vibebank.ui.forgotpassword;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.vibebank.R;
 import com.example.vibebank.ui.base.BaseActivity;
-import com.example.vibebank.ui.forgotpassword.ResetPasswordActivity;
 import com.example.vibebank.ui.login.LoginActivity;
 import com.example.vibebank.utils.PasswordValidationHelper;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 
-public class Register5Activity extends BaseActivity {
+public class ResetPasswordActivity extends BaseActivity {
+    private static final String TAG = "ResetPasswordActivity";
 
     private ImageView btnBack;
-    private MaterialButton btnCreateAccount;
+    private MaterialButton btnConfirm;
     private TextInputEditText edtUsername, edtPassword, edtConfirmPassword;
     private TextView tvRuleLength, tvRuleUpperLower, tvRuleDigit, tvRuleSpecial;
 
-    private RegisterViewModel viewModel;
+    private ResetPasswordViewModel viewModel;
     private PasswordValidationHelper passwordHelper;
+    private String uid, phone;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_register5);
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_reset_password);
 
-        viewModel = new ViewModelProvider(this).get(RegisterViewModel.class);
+        // Setup Insets
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.resetPassword), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
+
+        // Nhận dữ liệu từ màn hình trước
+        Intent intent = getIntent();
+        uid = intent.getStringExtra("uid");
+        phone = intent.getStringExtra("phone");
+
+        viewModel = new ViewModelProvider(this).get(ResetPasswordViewModel.class);
 
         initViews();
 
@@ -52,7 +72,7 @@ public class Register5Activity extends BaseActivity {
 
     private void initViews() {
         btnBack = findViewById(R.id.btnBack);
-        btnCreateAccount = findViewById(R.id.btnCreateAccount);
+        btnConfirm = findViewById(R.id.btnConfirm);
         edtUsername = findViewById(R.id.edtUsername);
         edtPassword = findViewById(R.id.edtPassword);
         edtConfirmPassword = findViewById(R.id.edtConfirmPassword);
@@ -64,8 +84,6 @@ public class Register5Activity extends BaseActivity {
     }
 
     private void setupData() {
-        // Tự động điền Username là SĐT (Read-only)
-        String phone = viewModel.getPhone();
         if (phone != null) {
             edtUsername.setText(phone);
             edtUsername.setEnabled(false); // Không cho sửa username
@@ -75,22 +93,24 @@ public class Register5Activity extends BaseActivity {
     private void setupListeners() {
         btnBack.setOnClickListener(v -> finish());
 
-        btnCreateAccount.setOnClickListener(v -> {
+        btnConfirm.setOnClickListener(v -> {
             if (passwordHelper.isValid()) {
-                // Lấy pass từ Helper và lưu vào ViewModel
-                viewModel.saveAccountInfo(passwordHelper.getPassword());
-                // Gọi API đăng ký
-                viewModel.registerUser();
+                String newPass = passwordHelper.getPassword();
+                if (uid != null) {
+                    viewModel.updatePassword(uid, newPass);
+                } else {
+                    Toast.makeText(this, "Đã xảy ra lỗi", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
 
     private void setupObservers() {
-        viewModel.registrationResult.observe(this, isSuccess -> {
-            if (isSuccess) {
+        viewModel.updateResult.observe(this, error -> {
+            if (error == null) {
                 showSuccessDialog();
             } else {
-                showErrorDialog("Đã xảy ra lỗi khi tạo tài khoản");
+                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -98,11 +118,11 @@ public class Register5Activity extends BaseActivity {
     private void showSuccessDialog() {
         androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle("Thành công")
-                .setMessage("Tài khoản đã được tạo thành công! Vui lòng đăng nhập.")
+                .setMessage("Đổi mật khẩu thành công. Vui lòng đăng nhập lại.")
                 .setCancelable(false)
                 .setIcon(R.drawable.ic_check_green)
                 .setPositiveButton("Đăng nhập ngay", (d, w) -> {
-                    Intent intent = new Intent(Register5Activity.this, LoginActivity.class);
+                    Intent intent = new Intent(ResetPasswordActivity.this, LoginActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     startActivity(intent);
                     finishAffinity();

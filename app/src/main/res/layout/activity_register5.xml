@@ -86,10 +86,12 @@
                     style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint=""
+                    android:hint="Tên đăng nhập"
                     app:boxBackgroundColor="@android:color/transparent"
                     app:boxStrokeWidth="0dp"
-                    app:boxStrokeWidthFocused="0dp">
+                    app:boxStrokeWidthFocused="0dp"
+                    android:textColorHint="#A3A3A3"
+                    app:hintTextColor="@color/text_input_hint_color">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/edtUsername"
@@ -163,14 +165,51 @@
                 android:fontFamily="@font/nunito_sans"
                 android:layout_marginBottom="4dp" />
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="• Ít nhất 8 ký tự\n• Có chữ hoa và chữ thường\n• Có ít nhất 1 chữ số\n• Có ít nhất 1 ký tự đặc biệt (!@#$)"
-                android:textSize="12sp"
-                android:textColor="#666666"
-                android:fontFamily="@font/nunito_sans"
-                android:layout_marginBottom="16dp" />
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/tvRuleLength"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="• Ít nhất 8 ký tự"
+                    android:textSize="12sp"
+                    android:textColor="#666666"
+                    android:fontFamily="@font/nunito_sans"
+                    android:paddingBottom="2dp"/>
+
+                <TextView
+                    android:id="@+id/tvRuleUpperLower"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="• Có chữ hoa và chữ thường"
+                    android:textSize="12sp"
+                    android:textColor="#666666"
+                    android:fontFamily="@font/nunito_sans"
+                    android:paddingBottom="2dp"/>
+
+                <TextView
+                    android:id="@+id/tvRuleDigit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="• Có ít nhất 1 chữ số"
+                    android:textSize="12sp"
+                    android:textColor="#666666"
+                    android:fontFamily="@font/nunito_sans"
+                    android:paddingBottom="2dp"/>
+
+                <TextView
+                    android:id="@+id/tvRuleSpecial"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="• Có ít nhất 1 ký tự đặc biệt"
+                    android:textSize="12sp"
+                    android:textColor="#666666"
+                    android:fontFamily="@font/nunito_sans"/>
+            </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"

@@ -1,4 +1,4 @@
-package com.example.vibebank.ui.register;
+package com.example.vibebank.ui;
 
 import android.app.Dialog;
 import android.content.Context;
@@ -168,6 +168,18 @@ public class OtpBottomSheetDialog extends BottomSheetDialogFragment {
                 public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
                 public void onTextChanged(CharSequence s, int start, int before, int count) {
                     if (s.length() == 1 && index < otpDigits.length - 1) otpDigits[index + 1].requestFocus();
+
+                    if (s.length() == 1 && index == otpDigits.length - 1) {
+                        String otp = getOtpCode();
+                        if (otp.length() == 6) {
+
+                            if (isOtpExpired) {
+                                Toast.makeText(getContext(), "Mã OTP đã hết hạn. Vui lòng lấy mã mới!", Toast.LENGTH_SHORT).show();
+                            } else {
+                                if (listener != null) listener.onOtpVerified(otp);
+                            }
+                        }
+                    }
                 }
                 public void afterTextChanged(Editable s) {}
             });

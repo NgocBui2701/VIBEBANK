@@ -19,6 +19,8 @@ public class RegisterDataManager {
     private String frontIdCardPath;
     private String backIdCardPath;
 
+    // Dữ liệu từ Register 5
+    private String password;
 
     private RegisterDataManager() {}
 
@@ -67,4 +69,9 @@ public class RegisterDataManager {
     public String getBackIdCardPath() { return backIdCardPath; }
     public void setBackIdCardPath(String path) { this.backIdCardPath = path; }
 
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+
+    public String getUsername() { return phone; }
+    public void setUsername(String username) { this.phone = username; }
 }
