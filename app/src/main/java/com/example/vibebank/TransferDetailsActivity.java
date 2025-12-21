@@ -486,6 +486,14 @@ public class TransferDetailsActivity extends AppCompatActivity implements
                 android.util.Log.d("TransferDetailsActivity", "Marked electric bill as paid: " + billCustomerId);
             }
 
+            // If this is a water bill payment, mark it as paid
+            boolean isWaterBillPayment = getIntent().getBooleanExtra("isWaterBillPayment", false);
+            if (isWaterBillPayment && billCustomerId != null && !billCustomerId.isEmpty()) {
+                com.example.vibebank.utils.WaterBillMockService.initialize(TransferDetailsActivity.this);
+                com.example.vibebank.utils.WaterBillMockService.payBill(billCustomerId);
+                android.util.Log.d("TransferDetailsActivity", "Marked water bill as paid: " + billCustomerId);
+            }
+
             Intent intent = new Intent(TransferDetailsActivity.this, TransferResultActivity.class);
             intent.putExtra("amount", amount);
             intent.putExtra("receiverName", receiverName);

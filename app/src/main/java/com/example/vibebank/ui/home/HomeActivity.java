@@ -28,6 +28,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.vibebank.AccountManagementActivity;
 import com.example.vibebank.ElectricBillActivity;
+import com.example.vibebank.WaterBillActivity;
 import com.example.vibebank.MyQRActivity;
 import com.example.vibebank.NotificationsActivity;
 import com.example.vibebank.ScanQRActivity;
@@ -493,8 +494,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             startActivity(intent);
         });
 
-        findViewById(R.id.btnWater).setOnClickListener(v ->
-            Toast.makeText(this, "Tiền nước", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnWater).setOnClickListener(v -> {
+            Intent intent = new Intent(this, WaterBillActivity.class);
+            startActivity(intent);
+        });
 
         findViewById(R.id.btnTopup).setOnClickListener(v ->
             Toast.makeText(this, "Nạp cước", Toast.LENGTH_SHORT).show());

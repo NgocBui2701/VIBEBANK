@@ -112,6 +112,13 @@
             android:name=".ElectricBillResultActivity"
             android:exported="false" />
         <activity
+            android:name=".WaterBillActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".WaterBillResultActivity"
+            android:exported="false" />
+        <activity
             android:name=".MyQRActivity"
             android:exported="false" />
         <activity
