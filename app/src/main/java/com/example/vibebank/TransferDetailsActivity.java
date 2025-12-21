@@ -157,6 +157,12 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         tvReceiverAccount.setText(receiverAccountNumber);
         tvReceiverName.setText(receiverName);
 
+        // Auto-fill amount if provided
+        String prefilledAmount = getIntent().getStringExtra("amount");
+        if (prefilledAmount != null && !prefilledAmount.isEmpty()) {
+            edtAmount.setText(prefilledAmount);
+        }
+
         // Kiểm tra người nhận đã tồn tại trong danh sách đã lưu
         SharedPreferences prefs = getSharedPreferences("SavedRecipients", MODE_PRIVATE);
         if (prefs.contains(receiverAccountNumber)) {
@@ -166,7 +172,10 @@ public class TransferDetailsActivity extends AppCompatActivity implements
 
         setupMoneyInput();
 
-        btnBack.setOnClickListener(v -> finish());
+        btnBack.setOnClickListener(v -> {
+            setResult(RESULT_CANCELED);
+            finish();
+        });
 
         // Mở nút chuyển tiền khi nhập đủ
         btnTransfer.setEnabled(true);
@@ -327,7 +336,9 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             return;
         }
 
-        if (receiverUid == null || receiverUid.isEmpty()) {
+        // Validate receiverUid (skip for external bank transfers)
+        boolean isExternalTransfer = "EXTERNAL_BANK".equals(receiverUid);
+        if (!isExternalTransfer && (receiverUid == null || receiverUid.isEmpty())) {
             Toast.makeText(this, "Lỗi: Không tìm thấy ID người nhận. Vui lòng thử lại.", Toast.LENGTH_LONG).show();
             return;
         }
@@ -467,16 +478,29 @@ public class TransferDetailsActivity extends AppCompatActivity implements
                         });
             }
 
+            // If this is an electric bill payment, mark it as paid
+            String billCustomerId = getIntent().getStringExtra("billCustomerId");
+            if (billCustomerId != null && !billCustomerId.isEmpty()) {
+                com.example.vibebank.utils.ElectricBillMockService.initialize(TransferDetailsActivity.this);
+                com.example.vibebank.utils.ElectricBillMockService.payBill(billCustomerId);
+                android.util.Log.d("TransferDetailsActivity", "Marked electric bill as paid: " + billCustomerId);
+            }
+
             Intent intent = new Intent(TransferDetailsActivity.this, TransferResultActivity.class);
             intent.putExtra("amount", amount);
             intent.putExtra("receiverName", receiverName);
             intent.putExtra("receiverAccount", receiverAccountNumber);
             intent.putExtra("content", message);
             intent.putExtra("refId", UUID.randomUUID().toString().substring(0, 10).toUpperCase());
+            
+            // Set result for caller activity
+            setResult(RESULT_OK, intent);
+            
             startActivity(intent);
             finish();
 
         }).addOnFailureListener(e -> {
+            setResult(RESULT_CANCELED);
             if (e.getMessage() != null && e.getMessage().contains("Insufficient funds")) {
                 showErrorDialog("Số dư tài khoản không đủ để thực hiện thao tác");
             } else {
