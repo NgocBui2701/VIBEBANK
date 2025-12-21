@@ -494,6 +494,14 @@ public class TransferDetailsActivity extends AppCompatActivity implements
                 android.util.Log.d("TransferDetailsActivity", "Marked water bill as paid: " + billCustomerId);
             }
 
+            // If this is a topup payment, just log it (no need to mark anything as paid)
+            boolean isTopupPayment = getIntent().getBooleanExtra("isTopupPayment", false);
+            if (isTopupPayment) {
+                String topupPhoneNumber = getIntent().getStringExtra("topupPhoneNumber");
+                String topupPackageName = getIntent().getStringExtra("topupPackageName");
+                android.util.Log.d("TransferDetailsActivity", "Topup payment completed: " + topupPhoneNumber + " - " + topupPackageName);
+            }
+
             Intent intent = new Intent(TransferDetailsActivity.this, TransferResultActivity.class);
             intent.putExtra("amount", amount);
             intent.putExtra("receiverName", receiverName);

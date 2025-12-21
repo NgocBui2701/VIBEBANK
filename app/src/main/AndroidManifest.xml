@@ -119,6 +119,13 @@
             android:name=".WaterBillResultActivity"
             android:exported="false" />
         <activity
+            android:name=".TopupActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".TopupResultActivity"
+            android:exported="false" />
+        <activity
             android:name=".MyQRActivity"
             android:exported="false" />
         <activity
