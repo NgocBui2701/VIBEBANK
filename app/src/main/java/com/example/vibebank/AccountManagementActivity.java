@@ -1,8 +1,11 @@
 package com.example.vibebank;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -13,9 +16,19 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.text.NumberFormat;
+import java.util.Locale;
 
 public class AccountManagementActivity extends AppCompatActivity {
     private static final String TAG = "AccountManagement";
+    
+    // Firebase
+    private FirebaseFirestore db;
+    private String currentUserId;
     
     // Header
     private ImageView btnBack;
@@ -30,6 +43,7 @@ public class AccountManagementActivity extends AppCompatActivity {
     private TextView txtInterestRate;
     private TextView txtMonthlyProfit;
     private ImageView btnToggleDeposit;
+    private ProgressBar progressBar;
     
     // Bottom button
     private MaterialButton btnDeposit;
@@ -38,15 +52,15 @@ public class AccountManagementActivity extends AppCompatActivity {
     private int currentTab = 0; // 0: Payment, 1: Saving, 2: Credit
     private boolean isDepositVisible = true;
     
-    // Sample data for different account types
-    private final String[][] accountData = {
-        // Payment account: {deposit, interestRate, monthlyProfit}
-        {"5,000", "2,1", "105"},
-        // Saving account
-        {"50,000", "4,5", "2,250"},
-        // Credit account
-        {"10,000", "1,8", "180"}
-    };
+    // Data for 3 account types
+    private double paymentBalance = 0.0;
+    private double savingBalance = 0.0;
+    private double creditLimit = 0.0;
+    private double creditDebt = 0.0; // Công nợ thẻ credit
+    
+    private static final double PAYMENT_INTEREST = 0.01 / 12; // 1% năm = 0.083% tháng
+    private static final double SAVING_INTEREST = 0.06 / 12;  // 6% năm = 0.5% tháng
+    private static final double CREDIT_INTEREST = 0.18 / 12;  // 18% năm = 1.5% tháng (lãi nợ)
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,10 +74,27 @@ public class AccountManagementActivity extends AppCompatActivity {
             return insets;
         });
 
+        db = FirebaseFirestore.getInstance();
+        
+        // Get current user ID
+        FirebaseAuth auth = FirebaseAuth.getInstance();
+        if (auth.getCurrentUser() != null) {
+            currentUserId = auth.getCurrentUser().getUid();
+        } else {
+            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+            currentUserId = prefs.getString("current_user_id", null);
+        }
+
+        if (currentUserId == null) {
+            Toast.makeText(this, "Lỗi phiên đăng nhập", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
         initializeViews();
         setupListeners();
         updateTabSelection(0);
-        updateContent();
+        loadAccountData();
     }
     
     private void initializeViews() {
@@ -80,6 +111,7 @@ public class AccountManagementActivity extends AppCompatActivity {
         txtInterestRate = findViewById(R.id.txtInterestRate);
         txtMonthlyProfit = findViewById(R.id.txtMonthlyProfit);
         btnToggleDeposit = findViewById(R.id.btnToggleDeposit);
+        progressBar = findViewById(R.id.progressBar);
         
         // Bottom button
         btnDeposit = findViewById(R.id.btnDeposit);
@@ -91,19 +123,19 @@ public class AccountManagementActivity extends AppCompatActivity {
         btnTabPayment.setOnClickListener(v -> {
             currentTab = 0;
             updateTabSelection(0);
-            updateContent();
+            loadAccountData();
         });
         
         btnTabSaving.setOnClickListener(v -> {
             currentTab = 1;
             updateTabSelection(1);
-            updateContent();
+            loadAccountData();
         });
         
         btnTabCredit.setOnClickListener(v -> {
             currentTab = 2;
             updateTabSelection(2);
-            updateContent();
+            loadAccountData();
         });
         
         btnToggleDeposit.setOnClickListener(v -> {
@@ -112,10 +144,9 @@ public class AccountManagementActivity extends AppCompatActivity {
         });
         
         btnDeposit.setOnClickListener(v -> {
-            String accountType = currentTab == 0 ? "thanh toán" : 
-                               currentTab == 1 ? "tiết kiệm" : "thẻ credit";
-            Toast.makeText(this, "Nạp tiền vào tài khoản " + accountType, 
-                         Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(AccountManagementActivity.this, DepositActivity.class);
+            intent.putExtra("accountType", currentTab);
+            startActivity(intent);
         });
     }
     
@@ -145,10 +176,32 @@ public class AccountManagementActivity extends AppCompatActivity {
     }
     
     private void updateContent() {
-        String[] data = accountData[currentTab];
-        txtDeposit.setText(data[0]);
-        txtInterestRate.setText(data[1]);
-        txtMonthlyProfit.setText(data[2]);
+        double displayAmount = 0.0;
+        double interestRate = 0.0;
+        double monthlyProfit = 0.0;
+        
+        switch (currentTab) {
+            case 0: // Payment Account
+                displayAmount = paymentBalance;
+                interestRate = PAYMENT_INTEREST;
+                monthlyProfit = paymentBalance * interestRate;
+                break;
+                
+            case 1: // Saving Account
+                displayAmount = savingBalance;
+                interestRate = SAVING_INTEREST;
+                monthlyProfit = savingBalance * interestRate;
+                break;
+                
+            case 2: // Credit Card
+                displayAmount = creditLimit - creditDebt; // Hạn mức còn lại
+                interestRate = CREDIT_INTEREST;
+                monthlyProfit = creditDebt * interestRate; // Lãi phải trả trên công nợ
+                break;
+        }
+        
+        txtInterestRate.setText(formatPercent(interestRate * 12)); // Hiển thị % năm
+        txtMonthlyProfit.setText(formatMoney(monthlyProfit));
         
         // Reset visibility to visible when switching tabs
         isDepositVisible = true;
@@ -156,12 +209,137 @@ public class AccountManagementActivity extends AppCompatActivity {
     }
     
     private void updateDepositVisibility() {
+        double displayAmount = 0.0;
+        
+        switch (currentTab) {
+            case 0:
+                displayAmount = paymentBalance;
+                break;
+            case 1:
+                displayAmount = savingBalance;
+                break;
+            case 2:
+                displayAmount = creditLimit - creditDebt;
+                break;
+        }
+        
         if (isDepositVisible) {
-            txtDeposit.setText(accountData[currentTab][0]);
+            txtDeposit.setText(formatMoney(displayAmount));
             btnToggleDeposit.setImageResource(R.drawable.ic_eye);
         } else {
             txtDeposit.setText("******");
             btnToggleDeposit.setImageResource(R.drawable.ic_eye_off);
         }
+    }
+    
+    private void loadAccountData() {
+        if (progressBar != null) {
+            progressBar.setVisibility(View.VISIBLE);
+        }
+        
+        switch (currentTab) {
+            case 0:
+                loadPaymentAccount();
+                break;
+            case 1:
+                loadSavingAccount();
+                break;
+            case 2:
+                loadCreditCard();
+                break;
+        }
+    }
+    
+    private void loadPaymentAccount() {
+        db.collection("accounts")
+                .document(currentUserId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (progressBar != null) {
+                        progressBar.setVisibility(View.GONE);
+                    }
+                    
+                    if (documentSnapshot.exists()) {
+                        Double balanceValue = documentSnapshot.getDouble("balance");
+                        paymentBalance = balanceValue != null ? balanceValue : 0.0;
+                        updateContent();
+                    } else {
+                        Toast.makeText(this, "Chưa có tài khoản thanh toán", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (progressBar != null) {
+                        progressBar.setVisibility(View.GONE);
+                    }
+                    Toast.makeText(this, "Lỗi: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+    
+    private void loadSavingAccount() {
+        db.collection("savings")
+                .document(currentUserId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (progressBar != null) {
+                        progressBar.setVisibility(View.GONE);
+                    }
+                    
+                    if (documentSnapshot.exists()) {
+                        Double balanceValue = documentSnapshot.getDouble("balance");
+                        savingBalance = balanceValue != null ? balanceValue : 0.0;
+                        updateContent();
+                    } else {
+                        // Tạo tài khoản tiết kiệm mới với số dư 0
+                        savingBalance = 0.0;
+                        updateContent();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (progressBar != null) {
+                        progressBar.setVisibility(View.GONE);
+                    }
+                    Toast.makeText(this, "Lỗi: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+    
+    private void loadCreditCard() {
+        db.collection("credit_cards")
+                .document(currentUserId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (progressBar != null) {
+                        progressBar.setVisibility(View.GONE);
+                    }
+                    
+                    if (documentSnapshot.exists()) {
+                        Double limitValue = documentSnapshot.getDouble("credit_limit");
+                        Double debtValue = documentSnapshot.getDouble("debt");
+                        
+                        creditLimit = limitValue != null ? limitValue : 10000000.0; // 10 triệu default
+                        creditDebt = debtValue != null ? debtValue : 0.0;
+                        updateContent();
+                    } else {
+                        // Tạo thẻ credit mới với hạn mức 10 triệu
+                        creditLimit = 10000000.0;
+                        creditDebt = 0.0;
+                        updateContent();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (progressBar != null) {
+                        progressBar.setVisibility(View.GONE);
+                    }
+                    Toast.makeText(this, "Lỗi: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+    
+    private String formatMoney(double amount) {
+        NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
+        formatter.setMaximumFractionDigits(0);
+        return formatter.format(amount);
+    }
+    
+    private String formatPercent(double rate) {
+        return String.format(Locale.US, "%.1f", rate * 100);
     }
 }
