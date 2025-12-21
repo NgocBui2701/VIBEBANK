@@ -114,10 +114,16 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         receiverUid = getIntent().getStringExtra("receiverUserId");
         String bankName = getIntent().getStringExtra("bankName");
 
-        if (receiverUid == null || receiverAccountNumber == null) {
-            Toast.makeText(this, "Lỗi: Không tìm thấy thông tin người nhận", Toast.LENGTH_SHORT).show();
+        // Validate - only accountNumber is required
+        if (receiverAccountNumber == null || receiverAccountNumber.isEmpty()) {
+            Toast.makeText(this, "Lỗi: Không tìm thấy số tài khoản người nhận", Toast.LENGTH_SHORT).show();
             finish();
             return;
+        }
+        
+        // If receiverName is null, use account number as fallback
+        if (receiverName == null || receiverName.isEmpty()) {
+            receiverName = "Tài khoản " + receiverAccountNumber;
         }
 
         // Ánh xạ
@@ -417,30 +423,34 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         }
 
         final DocumentReference senderRef = db.collection("accounts").document(currentUserId);
-        final DocumentReference receiverRef = db.collection("accounts").document(receiverUid);
+        final boolean isExternalBank = "EXTERNAL_BANK".equals(receiverUid);
+        final DocumentReference receiverRef = isExternalBank ? null : db.collection("accounts").document(receiverUid);
 
         // 2. Thực hiện Transaction trong Firestore
         db.runTransaction((Transaction.Function<Void>) transaction -> {
             // Đọc số dư người gửi
             Double senderBalance = transaction.get(senderRef).getDouble("balance");
-            Double receiverBalance = transaction.get(receiverRef).getDouble("balance");
 
             if (senderBalance == null) senderBalance = 0.0;
-            if (receiverBalance == null) receiverBalance = 0.0;
 
             // Kiểm tra số dư
             if (senderBalance < amount) {
                 throw new FirebaseFirestoreException("Insufficient funds", FirebaseFirestoreException.Code.ABORTED);
             }
 
-            // Tính toán
+            // Tính toán số dư mới cho người gửi
             double newSenderBalance = senderBalance - amount;
-            double newReceiverBalance = receiverBalance + amount;
-
-            // Update số dư
+            
+            // Update số dư người gửi
             transaction.update(senderRef, "balance", newSenderBalance);
-            transaction.update(receiverRef, "balance", newReceiverBalance);
-
+            
+            // Chỉ update số dư người nhận nếu là internal transfer
+            if (!isExternalBank && receiverRef != null) {
+                Double receiverBalance = transaction.get(receiverRef).getDouble("balance");
+                if (receiverBalance == null) receiverBalance = 0.0;
+                double newReceiverBalance = receiverBalance + amount;
+                transaction.update(receiverRef, "balance", newReceiverBalance);
+            }
 
             String transId = UUID.randomUUID().toString();
 
@@ -455,21 +465,23 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             senderLog.put("relatedAccountNumber", receiverAccountNumber);
             senderLog.put("transactionId", transId);
 
-            // Ghi lịch sử cho Người Nhận
-            Map<String, Object> receiverLog = new HashMap<>();
-            receiverLog.put("userId", receiverUid);
-            receiverLog.put("type", "RECEIVED");
-            receiverLog.put("amount", amount);
-            receiverLog.put("content", message);
-            receiverLog.put("timestamp", Timestamp.now());
-            receiverLog.put("relatedAccountName", senderName);
-            receiverLog.put("transactionId", transId);
-
             DocumentReference senderLogRef = senderRef.collection("transactions").document(transId);
-            DocumentReference receiverLogRef = receiverRef.collection("transactions").document(transId);
-
             transaction.set(senderLogRef, senderLog);
-            transaction.set(receiverLogRef, receiverLog);
+
+            // Chỉ ghi lịch sử cho người nhận nếu là internal transfer
+            if (!isExternalBank && receiverRef != null) {
+                Map<String, Object> receiverLog = new HashMap<>();
+                receiverLog.put("userId", receiverUid);
+                receiverLog.put("type", "RECEIVED");
+                receiverLog.put("amount", amount);
+                receiverLog.put("content", message);
+                receiverLog.put("timestamp", Timestamp.now());
+                receiverLog.put("relatedAccountName", senderName);
+                receiverLog.put("transactionId", transId);
+
+                DocumentReference receiverLogRef = receiverRef.collection("transactions").document(transId);
+                transaction.set(receiverLogRef, receiverLog);
+            }
 
             return null;
         }).addOnSuccessListener(aVoid -> {
@@ -477,19 +489,21 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             // Thông báo người gửi
             sendNotification("Biến động số dư", "Tài khoản -" + formattedAmount + " VND. Nội dung: " + message);
 
-            // Thông báo người nhận
-            Map<String, Object> notification = new HashMap<>();
-            notification.put("userId", receiverUid);
-            notification.put("title", "Biến động số dư");
-            notification.put("message", "Tài khoản " + receiverAccountNumber + ": +" + formattedAmount + " VND từ " + senderName + ". Nội dung: " + message);
-            notification.put("timestamp", new Date());
-            notification.put("isRead", false);
+            // Chỉ thông báo người nhận nếu là internal transfer
+            if (!isExternalBank) {
+                Map<String, Object> notification = new HashMap<>();
+                notification.put("userId", receiverUid);
+                notification.put("title", "Biến động số dư");
+                notification.put("message", "Tài khoản " + receiverAccountNumber + ": +" + formattedAmount + " VND từ " + senderName + ". Nội dung: " + message);
+                notification.put("timestamp", new Date());
+                notification.put("isRead", false);
 
-            db.collection("notifications")
-                    .add(notification)
-                    .addOnFailureListener(e -> {
-                        // Log lỗi nếu cần, nhưng không chặn luồng chính vì tiền đã chuyển xong rồi
-                    });
+                db.collection("notifications")
+                        .add(notification)
+                        .addOnFailureListener(e -> {
+                            // Log lỗi nếu cần, nhưng không chặn luồng chính vì tiền đã chuyển xong rồi
+                        });
+            }
 
             Intent intent = new Intent(TransferDetailsActivity.this, TransferResultActivity.class);
             intent.putExtra("amount", amount);

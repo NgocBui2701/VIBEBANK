@@ -50,8 +50,13 @@ dependencies {
     // When using the BoM, don't specify versions in Firebase dependencies
     implementation ("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-database")
     implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation("com.google.firebase:firebase-analytics")
+    
+    // QR Code libraries
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     
     // Google Maps
     implementation("com.google.android.gms:play-services-maps:18.2.0")
