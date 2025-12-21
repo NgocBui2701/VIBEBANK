@@ -428,27 +428,34 @@ public class TransferDetailsActivity extends AppCompatActivity implements
 
         // 2. Thực hiện Transaction trong Firestore
         db.runTransaction((Transaction.Function<Void>) transaction -> {
+            // ===== PHASE 1: READ ALL DATA FIRST =====
             // Đọc số dư người gửi
             Double senderBalance = transaction.get(senderRef).getDouble("balance");
-
             if (senderBalance == null) senderBalance = 0.0;
 
+            // Đọc số dư người nhận (nếu là internal transfer)
+            Double receiverBalance = 0.0;
+            if (!isExternalBank && receiverRef != null) {
+                receiverBalance = transaction.get(receiverRef).getDouble("balance");
+                if (receiverBalance == null) receiverBalance = 0.0;
+            }
+
+            // ===== PHASE 2: VALIDATE =====
             // Kiểm tra số dư
             if (senderBalance < amount) {
                 throw new FirebaseFirestoreException("Insufficient funds", FirebaseFirestoreException.Code.ABORTED);
             }
 
-            // Tính toán số dư mới cho người gửi
+            // ===== PHASE 3: WRITE ALL DATA =====
+            // Tính toán số dư mới
             double newSenderBalance = senderBalance - amount;
+            double newReceiverBalance = receiverBalance + amount;
             
             // Update số dư người gửi
             transaction.update(senderRef, "balance", newSenderBalance);
             
-            // Chỉ update số dư người nhận nếu là internal transfer
+            // Update số dư người nhận (nếu là internal transfer)
             if (!isExternalBank && receiverRef != null) {
-                Double receiverBalance = transaction.get(receiverRef).getDouble("balance");
-                if (receiverBalance == null) receiverBalance = 0.0;
-                double newReceiverBalance = receiverBalance + amount;
                 transaction.update(receiverRef, "balance", newReceiverBalance);
             }
 
