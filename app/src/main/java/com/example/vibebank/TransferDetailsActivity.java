@@ -430,14 +430,24 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         db.runTransaction((Transaction.Function<Void>) transaction -> {
             // ===== PHASE 1: READ ALL DATA FIRST =====
             // Đọc số dư người gửi
-            Double senderBalance = transaction.get(senderRef).getDouble("balance");
-            if (senderBalance == null) senderBalance = 0.0;
+            DocumentSnapshot senderDoc = transaction.get(senderRef);
+            Double senderBalance = 0.0;
+            boolean senderExists = senderDoc.exists();
+            if (senderExists) {
+                senderBalance = senderDoc.getDouble("balance");
+                if (senderBalance == null) senderBalance = 0.0;
+            }
 
             // Đọc số dư người nhận (nếu là internal transfer)
             Double receiverBalance = 0.0;
+            boolean receiverExists = false;
             if (!isExternalBank && receiverRef != null) {
-                receiverBalance = transaction.get(receiverRef).getDouble("balance");
-                if (receiverBalance == null) receiverBalance = 0.0;
+                DocumentSnapshot receiverDoc = transaction.get(receiverRef);
+                receiverExists = receiverDoc.exists();
+                if (receiverExists) {
+                    receiverBalance = receiverDoc.getDouble("balance");
+                    if (receiverBalance == null) receiverBalance = 0.0;
+                }
             }
 
             // ===== PHASE 2: VALIDATE =====
@@ -451,12 +461,26 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             double newSenderBalance = senderBalance - amount;
             double newReceiverBalance = receiverBalance + amount;
             
-            // Update số dư người gửi
-            transaction.update(senderRef, "balance", newSenderBalance);
+            // Update hoặc tạo mới số dư người gửi
+            if (senderExists) {
+                transaction.update(senderRef, "balance", newSenderBalance);
+            } else {
+                Map<String, Object> senderAccount = new HashMap<>();
+                senderAccount.put("userId", currentUserId);
+                senderAccount.put("balance", newSenderBalance);
+                transaction.set(senderRef, senderAccount);
+            }
             
-            // Update số dư người nhận (nếu là internal transfer)
+            // Update hoặc tạo mới số dư người nhận (nếu là internal transfer)
             if (!isExternalBank && receiverRef != null) {
-                transaction.update(receiverRef, "balance", newReceiverBalance);
+                if (receiverExists) {
+                    transaction.update(receiverRef, "balance", newReceiverBalance);
+                } else {
+                    Map<String, Object> receiverAccount = new HashMap<>();
+                    receiverAccount.put("userId", receiverUid);
+                    receiverAccount.put("balance", newReceiverBalance);
+                    transaction.set(receiverRef, receiverAccount);
+                }
             }
 
             String transId = UUID.randomUUID().toString();
