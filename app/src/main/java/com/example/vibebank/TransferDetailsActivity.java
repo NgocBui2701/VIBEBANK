@@ -21,6 +21,9 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
 
+import com.example.vibebank.ui.OtpBottomSheetDialog;
+import com.example.vibebank.utils.PhoneAuthManager;
+import com.example.vibebank.utils.SessionManager;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
@@ -37,7 +40,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-public class TransferDetailsActivity extends AppCompatActivity {
+public class TransferDetailsActivity extends AppCompatActivity implements
+        PhoneAuthManager.PhoneAuthCallback,
+        OtpBottomSheetDialog.OtpVerificationListener {
 
     private TextView tvReceiverName, tvReceiverAccount, tvReceiverBank;
     private EditText edtAmount, edtMessage;
@@ -46,9 +51,21 @@ public class TransferDetailsActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private String currentUserId = null;
     private String senderName = "Người dùng ẩn danh";
+    private String senderPhone = "";
     private String receiverUid, receiverAccountNumber, receiverName;
     private LinearLayout llSuggestions;
+    private static final double MAX_SUGGESTION_LIMIT = 999999999;
     private TextView tvSuggest1, tvSuggest2, tvSuggest3;
+
+    // Các biến cho OTP và Lockout
+    private PhoneAuthManager phoneAuthManager;
+    private OtpBottomSheetDialog otpDialog;
+    private SessionManager sessionManager;
+    private static final String PREFS_SECURITY = "SecurityPrefs";
+    private static final String KEY_FAILED_ATTEMPTS = "failed_attempts";
+    private static final String KEY_LOCKOUT_TIME = "lockout_timestamp";
+    private static final int MAX_FAILED_ATTEMPTS = 3;
+    private static final long LOCKOUT_DURATION = 30 * 60 * 1000; // 30 phút
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,25 +73,33 @@ public class TransferDetailsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_transfer_details);
 
         db = FirebaseFirestore.getInstance();
-
-//        currentUserId = FirebaseAuth.getInstance().getCurrentUser() != null ?
-//                FirebaseAuth.getInstance().getCurrentUser().getUid() : null;
+        phoneAuthManager = new PhoneAuthManager(this, this);
+        sessionManager = new SessionManager(this);
 
         // Lấy ID người dùng hiện tại
-        // 1. Thử lấy từ Firebase Auth trước
+        // 1. Lấy từ Firebase Auth
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
             currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         }
 
-        // 2. Nếu Firebase trả về null, lấy từ SharedPreferences (Backup)
+        // 2. Nếu null, lấy từ SessionManager (đồng bộ với LoginActivity)
+        if (currentUserId == null && sessionManager.isLoggedIn()) {
+            currentUserId = sessionManager.getCurrentUserId();
+        }
+
+        // 3. Lấy từ SharedPreferences "UserPrefs"
         if (currentUserId == null) {
             SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
             currentUserId = prefs.getString("current_user_id", null);
         }
 
-        // 3. Kiểm tra lần cuối
+        // Kiểm tra kết quả cuối cùng
         if (currentUserId == null) {
-            Toast.makeText(this, "Lỗi: Không xác định được người dùng.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Lỗi phiên đăng nhập. Vui lòng đăng nhập lại.", Toast.LENGTH_LONG).show();
+            // Tùy chọn: Chuyển về màn hình Login
+            // Intent intent = new Intent(this, LoginActivity.class);
+            // intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            // startActivity(intent);
             finish();
             return;
         }
@@ -89,10 +114,16 @@ public class TransferDetailsActivity extends AppCompatActivity {
         receiverUid = getIntent().getStringExtra("receiverUserId");
         String bankName = getIntent().getStringExtra("bankName");
 
-        if (receiverUid == null || receiverAccountNumber == null) {
-            Toast.makeText(this, "Lỗi: Không tìm thấy thông tin người nhận", Toast.LENGTH_SHORT).show();
+        // Validate - only accountNumber is required
+        if (receiverAccountNumber == null || receiverAccountNumber.isEmpty()) {
+            Toast.makeText(this, "Lỗi: Không tìm thấy số tài khoản người nhận", Toast.LENGTH_SHORT).show();
             finish();
             return;
+        }
+        
+        // If receiverName is null, use account number as fallback
+        if (receiverName == null || receiverName.isEmpty()) {
+            receiverName = "Tài khoản " + receiverAccountNumber;
         }
 
         // Ánh xạ
@@ -115,21 +146,146 @@ public class TransferDetailsActivity extends AppCompatActivity {
         tvReceiverAccount.setText(receiverAccountNumber);
         tvReceiverName.setText(receiverName);
 
-        setupMoneyInput();
-
-        // Kiểm tra người dùng đã tồn tại trong danh sách đã lưu
+        // Kiểm tra người nhận đã tồn tại trong danh sách đã lưu
         SharedPreferences prefs = getSharedPreferences("SavedRecipients", MODE_PRIVATE);
         if (prefs.contains(receiverAccountNumber)) {
-            // Nếu số tài khoản này đã có trong danh sách đã lưu
             cbSaveContact.setChecked(true);
             cbSaveContact.setEnabled(false);
         }
 
+        setupMoneyInput();
+
         btnBack.setOnClickListener(v -> finish());
 
         // Mở nút chuyển tiền khi nhập đủ
-        btnTransfer.setEnabled(true); // Đơn giản hóa cho demo
-        btnTransfer.setOnClickListener(v -> handleTransfer());
+        btnTransfer.setEnabled(true);
+        btnTransfer.setOnClickListener(v -> preCheckTransfer());
+    }
+
+    private void preCheckTransfer() {
+        // Kiểm tra đầu vào cơ bản
+        String amountStr = edtAmount.getText().toString().replace(".", "");
+        if (amountStr.isEmpty()) {
+            edtAmount.setError("Vui lòng nhập số tiền");
+            return;
+        }
+        double amount = Double.parseDouble(amountStr);
+        if (amount <= 0) {
+            edtAmount.setError("Số tiền phải lớn hơn 0");
+            return;
+        }
+
+        // KIỂM TRA KHÓA (LOCKOUT)
+        if (isLockedOut()) {
+            long remainingTime = getRemainingLockoutTime();
+            long minutes = remainingTime / 60000;
+            showErrorDialog("Tài khoản bị tạm khóa chức năng chuyển tiền do nhập sai OTP quá 3 lần. Vui lòng thử lại sau " + (minutes + 1) + " phút.");
+            return;
+        }
+
+        // Nếu có SĐT thì gửi OTP
+        if (senderPhone != null && !senderPhone.isEmpty()) {
+            // Show loading
+            Toast.makeText(this, "Đang gửi mã OTP...", Toast.LENGTH_SHORT).show();
+            phoneAuthManager.sendOtp(senderPhone);
+        } else {
+            showErrorDialog("Không tìm thấy số điện thoại xác thực. Vui lòng cập nhật hồ sơ.");
+        }
+    }
+
+    private boolean isLockedOut() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_SECURITY, MODE_PRIVATE);
+        long lockoutTime = prefs.getLong(KEY_LOCKOUT_TIME, 0);
+        return System.currentTimeMillis() < lockoutTime;
+    }
+
+    private long getRemainingLockoutTime() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_SECURITY, MODE_PRIVATE);
+        long lockoutTime = prefs.getLong(KEY_LOCKOUT_TIME, 0);
+        return Math.max(0, lockoutTime - System.currentTimeMillis());
+    }
+
+    private void handleFailedAttempt() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_SECURITY, MODE_PRIVATE);
+        int attempts = prefs.getInt(KEY_FAILED_ATTEMPTS, 0) + 1;
+        SharedPreferences.Editor editor = prefs.edit();
+
+        if (attempts >= MAX_FAILED_ATTEMPTS) {
+            // Khóa 30 phút
+            long unlockTime = System.currentTimeMillis() + LOCKOUT_DURATION;
+            editor.putLong(KEY_LOCKOUT_TIME, unlockTime);
+            editor.putInt(KEY_FAILED_ATTEMPTS, 0); // Reset số lần sai sau khi đã khóa
+            editor.apply();
+
+            // Đóng dialog OTP nếu đang mở
+            if (otpDialog != null && otpDialog.isVisible()) {
+                otpDialog.dismiss();
+            }
+
+            showErrorDialog("Bạn đã nhập sai quá 3 lần. Chức năng chuyển tiền bị khóa trong 30 phút.");
+        } else {
+            editor.putInt(KEY_FAILED_ATTEMPTS, attempts);
+            editor.apply();
+
+            // Thông báo số lần còn lại
+            int remaining = MAX_FAILED_ATTEMPTS - attempts;
+            new AlertDialog.Builder(this)
+                    .setTitle("Mã OTP không đúng")
+                    .setMessage("Bạn còn " + remaining + " lần thử.")
+                    .setPositiveButton("Thử lại", null)
+                    .show();
+        }
+    }
+
+    private void resetFailedAttempts() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_SECURITY, MODE_PRIVATE);
+        prefs.edit().putInt(KEY_FAILED_ATTEMPTS, 0).remove(KEY_LOCKOUT_TIME).apply();
+    }
+
+    // --- IMPLEMENT PHONE AUTH CALLBACKS (Giao tiếp với PhoneAuthManager) ---
+
+    @Override
+    public void onCodeSent() {
+        // OTP đã gửi thành công -> Hiện Dialog nhập
+        otpDialog = OtpBottomSheetDialog.newInstance(""); // Truyền sđt nếu muốn hiển thị
+        otpDialog.setOtpVerificationListener(this);
+        otpDialog.show(getSupportFragmentManager(), "OtpTransferDialog");
+    }
+
+    @Override
+    public void onVerificationSuccess() {
+        // Firebase xác thực thành công OTP
+        if (otpDialog != null && otpDialog.isVisible()) {
+            otpDialog.dismiss();
+        }
+
+        Toast.makeText(this, "Xác thực thành công!", Toast.LENGTH_SHORT).show();
+        resetFailedAttempts(); // Reset bộ đếm lỗi
+
+        // TIẾN HÀNH CHUYỂN TIỀN THẬT
+        performTransaction();
+    }
+
+    @Override
+    public void onVerificationFailed(String error) {
+        // Lỗi từ Firebase (Code sai, hết hạn...)
+        handleFailedAttempt();
+    }
+
+    // --- IMPLEMENT OTP DIALOG LISTENERS (Giao tiếp với BottomSheet) ---
+
+    @Override
+    public void onOtpVerified(String otpCode) {
+        // Người dùng bấm nút Xác nhận trên Dialog
+        phoneAuthManager.verifyCode(otpCode);
+    }
+
+    @Override
+    public void onResendOtp() {
+        if (senderPhone != null) {
+            phoneAuthManager.resendOtp(senderPhone);
+            Toast.makeText(this, "Đã gửi lại mã OTP", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void setupMoneyInput() {
@@ -180,7 +336,6 @@ public class TransferDetailsActivity extends AppCompatActivity {
         tvSuggest3.setOnClickListener(suggestionListener);
     }
 
-    private static final double MAX_SUGGESTION_LIMIT = 999999999;
     private void updateSuggestions(double currentAmount) {
         if (currentAmount <= 0) {
             llSuggestions.setVisibility(View.GONE);
@@ -224,7 +379,7 @@ public class TransferDetailsActivity extends AppCompatActivity {
         return formatter.format(amount);
     }
 
-    private void handleTransfer() {
+    private void performTransaction() {
 
         if (currentUserId == null) {
             Toast.makeText(this, "Lỗi: Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", Toast.LENGTH_LONG).show();
@@ -268,30 +423,41 @@ public class TransferDetailsActivity extends AppCompatActivity {
         }
 
         final DocumentReference senderRef = db.collection("accounts").document(currentUserId);
-        final DocumentReference receiverRef = db.collection("accounts").document(receiverUid);
+        final boolean isExternalBank = "EXTERNAL_BANK".equals(receiverUid);
+        final DocumentReference receiverRef = isExternalBank ? null : db.collection("accounts").document(receiverUid);
 
         // 2. Thực hiện Transaction trong Firestore
         db.runTransaction((Transaction.Function<Void>) transaction -> {
+            // ===== PHASE 1: READ ALL DATA FIRST =====
             // Đọc số dư người gửi
             Double senderBalance = transaction.get(senderRef).getDouble("balance");
-            Double receiverBalance = transaction.get(receiverRef).getDouble("balance");
-
             if (senderBalance == null) senderBalance = 0.0;
-            if (receiverBalance == null) receiverBalance = 0.0;
 
+            // Đọc số dư người nhận (nếu là internal transfer)
+            Double receiverBalance = 0.0;
+            if (!isExternalBank && receiverRef != null) {
+                receiverBalance = transaction.get(receiverRef).getDouble("balance");
+                if (receiverBalance == null) receiverBalance = 0.0;
+            }
+
+            // ===== PHASE 2: VALIDATE =====
             // Kiểm tra số dư
             if (senderBalance < amount) {
                 throw new FirebaseFirestoreException("Insufficient funds", FirebaseFirestoreException.Code.ABORTED);
             }
 
-            // Tính toán
+            // ===== PHASE 3: WRITE ALL DATA =====
+            // Tính toán số dư mới
             double newSenderBalance = senderBalance - amount;
             double newReceiverBalance = receiverBalance + amount;
-
-            // Update số dư
+            
+            // Update số dư người gửi
             transaction.update(senderRef, "balance", newSenderBalance);
-            transaction.update(receiverRef, "balance", newReceiverBalance);
-
+            
+            // Update số dư người nhận (nếu là internal transfer)
+            if (!isExternalBank && receiverRef != null) {
+                transaction.update(receiverRef, "balance", newReceiverBalance);
+            }
 
             String transId = UUID.randomUUID().toString();
 
@@ -306,21 +472,23 @@ public class TransferDetailsActivity extends AppCompatActivity {
             senderLog.put("relatedAccountNumber", receiverAccountNumber);
             senderLog.put("transactionId", transId);
 
-            // Ghi lịch sử cho Người Nhận
-            Map<String, Object> receiverLog = new HashMap<>();
-            receiverLog.put("userId", receiverUid);
-            receiverLog.put("type", "RECEIVED");
-            receiverLog.put("amount", amount);
-            receiverLog.put("content", message);
-            receiverLog.put("timestamp", Timestamp.now());
-            receiverLog.put("relatedAccountName", senderName);
-            receiverLog.put("transactionId", transId);
-
             DocumentReference senderLogRef = senderRef.collection("transactions").document(transId);
-            DocumentReference receiverLogRef = receiverRef.collection("transactions").document(transId);
-
             transaction.set(senderLogRef, senderLog);
-            transaction.set(receiverLogRef, receiverLog);
+
+            // Chỉ ghi lịch sử cho người nhận nếu là internal transfer
+            if (!isExternalBank && receiverRef != null) {
+                Map<String, Object> receiverLog = new HashMap<>();
+                receiverLog.put("userId", receiverUid);
+                receiverLog.put("type", "RECEIVED");
+                receiverLog.put("amount", amount);
+                receiverLog.put("content", message);
+                receiverLog.put("timestamp", Timestamp.now());
+                receiverLog.put("relatedAccountName", senderName);
+                receiverLog.put("transactionId", transId);
+
+                DocumentReference receiverLogRef = receiverRef.collection("transactions").document(transId);
+                transaction.set(receiverLogRef, receiverLog);
+            }
 
             return null;
         }).addOnSuccessListener(aVoid -> {
@@ -328,19 +496,21 @@ public class TransferDetailsActivity extends AppCompatActivity {
             // Thông báo người gửi
             sendNotification("Biến động số dư", "Tài khoản -" + formattedAmount + " VND. Nội dung: " + message);
 
-            // Thông báo người nhận
-            Map<String, Object> notification = new HashMap<>();
-            notification.put("userId", receiverUid);
-            notification.put("title", "Biến động số dư");
-            notification.put("message", "Tài khoản " + receiverAccountNumber + ": +" + formattedAmount + " VND từ " + senderName + ". Nội dung: " + message);
-            notification.put("timestamp", new Date());
-            notification.put("isRead", false);
+            // Chỉ thông báo người nhận nếu là internal transfer
+            if (!isExternalBank) {
+                Map<String, Object> notification = new HashMap<>();
+                notification.put("userId", receiverUid);
+                notification.put("title", "Biến động số dư");
+                notification.put("message", "Tài khoản " + receiverAccountNumber + ": +" + formattedAmount + " VND từ " + senderName + ". Nội dung: " + message);
+                notification.put("timestamp", new Date());
+                notification.put("isRead", false);
 
-            db.collection("notifications")
-                    .add(notification)
-                    .addOnFailureListener(e -> {
-                        // Log lỗi nếu cần, nhưng không chặn luồng chính vì tiền đã chuyển xong rồi
-                    });
+                db.collection("notifications")
+                        .add(notification)
+                        .addOnFailureListener(e -> {
+                            // Log lỗi nếu cần, nhưng không chặn luồng chính vì tiền đã chuyển xong rồi
+                        });
+            }
 
             Intent intent = new Intent(TransferDetailsActivity.this, TransferResultActivity.class);
             intent.putExtra("amount", amount);
@@ -405,17 +575,23 @@ public class TransferDetailsActivity extends AppCompatActivity {
                                 senderName = name;
 
                                 if (edtMessage.getText().toString().isEmpty() ||
-                                        edtMessage.getText().toString().equals("Người dùng ẩn danhchuyển tiền")) {
-
+                                        edtMessage.getText().toString().equals("Người dùng ẩn danh chuyển tiền")) {
                                     edtMessage.setText(senderName + " chuyển tiền");
                                 }
                             }
+                            // 2. Lấy Số điện thoại
+                            String phone = userDoc.getString("phone_number");
+                            if (phone != null && !phone.isEmpty()) {
+                                senderPhone = phone;
+                            } else {
+                                Toast.makeText(this, "Hồ sơ của bạn thiếu số điện thoại để xác thực OTP", Toast.LENGTH_LONG).show();
+                            }
                         } else {
-                            Toast.makeText(this, "Dữ liệu người dùng bị lỗi", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, "Không tìm thấy hồ sơ người dùng", Toast.LENGTH_SHORT).show();
                         }
                     } else {
                         // Lỗi kết nối server
-                        Toast.makeText(this, "Lỗi khi lấy thông tin người gửi", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Lỗi kết nối khi lấy thông tin người gửi", Toast.LENGTH_SHORT).show();
                     }
                 });
     }

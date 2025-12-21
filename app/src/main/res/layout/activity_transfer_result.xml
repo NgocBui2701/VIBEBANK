@@ -171,7 +171,7 @@
                         android:textColor="#666666" />
 
                     <TextView
-                        android:id="@+id/txtDetailBank"
+                        android:id="@+id/txtDetailRecipientBank"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="VIBEBANK"
@@ -292,6 +292,115 @@
                 </LinearLayout>
 
             </LinearLayout>
+
+            <!-- VNPAY Information Card (for external transfers) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardVNPay"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="#E8F5E9">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Thông tin thanh toán qua VNPAY"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="#2E7D32"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- VNPAY Transaction ID -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Mã GD VNPAY"
+                            android:textSize="14sp"
+                            android:textColor="#2E7D32" />
+
+                        <TextView
+                            android:id="@+id/txtVNPayTransactionId"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="VNP_20240112_12345678"
+                            android:textSize="14sp"
+                            android:fontFamily="monospace"
+                            android:textStyle="bold"
+                            android:textColor="#1B5E20" />
+
+                    </LinearLayout>
+
+                    <!-- Bank Transaction ID -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Mã GD ngân hàng"
+                            android:textSize="14sp"
+                            android:textColor="#2E7D32" />
+
+                        <TextView
+                            android:id="@+id/txtBankTransactionId"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="FT25123456789012"
+                            android:textSize="14sp"
+                            android:fontFamily="monospace"
+                            android:textColor="#1B5E20" />
+
+                    </LinearLayout>
+
+                    <!-- Transfer Fee -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Phí giao dịch"
+                            android:textSize="14sp"
+                            android:textColor="#2E7D32" />
+
+                        <TextView
+                            android:id="@+id/txtTransferFee"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="2.500 đ"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="#1B5E20" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Action Buttons -->
 

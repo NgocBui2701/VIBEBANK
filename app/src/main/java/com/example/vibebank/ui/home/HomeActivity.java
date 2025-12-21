@@ -27,6 +27,8 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.vibebank.AccountManagementActivity;
+import com.example.vibebank.MyQRActivity;
+import com.example.vibebank.ScanQRActivity;
 import com.example.vibebank.ui.profile.ProfileActivity;
 import com.example.vibebank.R;
 import com.example.vibebank.TransactionHistoryActivity;
@@ -57,6 +59,9 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ImageView btnToggleBalance;
     private ImageView btnNotification;
     private ImageView btnMenu;
+
+    // Quick action buttons
+    private LinearLayout btnQR;
 
     // Custom bottom nav
     private LinearLayout navHome, navHistory, navQR, navTransfer, navSupport;
@@ -192,6 +197,9 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         btnMenu = findViewById(R.id.btnMenu);
         scrollView = findViewById(R.id.scrollView);
 
+        // Initialize quick actions
+        btnQR = findViewById(R.id.btnQR);
+
         // Initialize bottom nav
         navHome = findViewById(R.id.navHome);
         navHistory = findViewById(R.id.navHistory);
@@ -209,7 +217,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         navHome.setOnClickListener(v -> selectNavItem(0));
         navHistory.setOnClickListener(v -> selectNavItem(1));
         navQR.setOnClickListener(v -> {
-            Toast.makeText(this, "Quét mã QR", Toast.LENGTH_SHORT).show();
+            try {
+                Intent intent = new Intent(HomeActivity.this, ScanQRActivity.class);
+                startActivity(intent);
+            } catch (Exception e) {
+                Toast.makeText(HomeActivity.this, "Lỗi: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                e.printStackTrace();
+            }
         });
         navTransfer.setOnClickListener(v -> selectNavItem(3));
         navSupport.setOnClickListener(v -> selectNavItem(4));
@@ -224,6 +238,21 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void setupListeners() {
         // Toggle balance visibility
         btnToggleBalance.setOnClickListener(v -> toggleBalanceVisibility());
+
+        // QR Code button
+        if (btnQR != null) {
+            btnQR.setOnClickListener(v -> {
+                try {
+                    Intent intent = new Intent(HomeActivity.this, MyQRActivity.class);
+                    startActivity(intent);
+                } catch (Exception e) {
+                    Toast.makeText(HomeActivity.this, "Lỗi: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    e.printStackTrace();
+                }
+            });
+        } else {
+            Toast.makeText(this, "Không tìm thấy nút QR", Toast.LENGTH_SHORT).show();
+        }
 
         // Notification button
         btnNotification.setOnClickListener(new View.OnClickListener() {

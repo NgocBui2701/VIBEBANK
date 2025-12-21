@@ -8,7 +8,9 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.vibebank.ui.home.HomeActivity;
+import com.google.android.material.card.MaterialCardView;
 
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -23,21 +25,36 @@ public class TransferResultActivity extends AppCompatActivity {
         TextView txtAmount = findViewById(R.id.txtResultAmount);
         TextView txtReceiverName = findViewById(R.id.txtDetailRecipientName);
         TextView txtReceiverAccount = findViewById(R.id.txtDetailRecipientAccount);
+        TextView txtReceiverBank = findViewById(R.id.txtDetailRecipientBank);
         TextView txtContent = findViewById(R.id.txtDetailMessage);
         TextView txtRef = findViewById(R.id.txtDetailReferenceId);
         TextView txtTime = findViewById(R.id.txtDetailDate);
+        TextView txtVNPayTransactionId = findViewById(R.id.txtVNPayTransactionId);
+        TextView txtBankTransactionId = findViewById(R.id.txtBankTransactionId);
+        TextView txtTransferFee = findViewById(R.id.txtTransferFee);
+        MaterialCardView cardVNPay = findViewById(R.id.cardVNPay);
         Button btnComplete = findViewById(R.id.btnComplete);
         View btnClose = findViewById(R.id.btnClose);
 
+        NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+
+        // Get intent data
         double amount = getIntent().getDoubleExtra("amount", 0);
         String refId = getIntent().getStringExtra("refId");
         String receiverName = getIntent().getStringExtra("receiverName");
         String receiverAccount = getIntent().getStringExtra("receiverAccount");
+        String receiverBank = getIntent().getStringExtra("BANK_NAME");
         String content = getIntent().getStringExtra("content");
+        
+        // VNPAY data
+        String vnpayTransactionId = getIntent().getStringExtra("VNPAY_TRANSACTION_ID");
+        String bankTransactionId = getIntent().getStringExtra("BANK_TRANSACTION_ID");
+        long transferFee = getIntent().getLongExtra("TRANSFER_FEE", 0);
+        boolean isExternal = getIntent().getBooleanExtra("IS_EXTERNAL", false);
 
-        // Format tiền tệ đơn giản
+        // Format tiền tệ
         if (txtAmount != null) {
-            txtAmount.setText(String.format("%,.0f VND", amount));
+            txtAmount.setText(currencyFormatter.format(amount));
         }
 
         // Hiển thị thông tin người nhận
@@ -49,8 +66,12 @@ public class TransferResultActivity extends AppCompatActivity {
             txtReceiverAccount.setText(receiverAccount != null ? receiverAccount : "N/A");
         }
 
+        if (txtReceiverBank != null && receiverBank != null) {
+            txtReceiverBank.setText(receiverBank);
+        }
+
         if (txtContent != null) {
-            txtContent.setText(content != null ? content : "N/A");
+            txtContent.setText(content != null && !content.isEmpty() ? content : "N/A");
         }
 
         // Hiển thị mã giao dịch
@@ -62,6 +83,25 @@ public class TransferResultActivity extends AppCompatActivity {
         if (txtTime != null) {
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
             txtTime.setText(sdf.format(new Date()));
+        }
+
+        // Show VNPAY card for external transfers
+        if (isExternal && vnpayTransactionId != null && cardVNPay != null) {
+            cardVNPay.setVisibility(View.VISIBLE);
+            
+            if (txtVNPayTransactionId != null) {
+                txtVNPayTransactionId.setText(vnpayTransactionId);
+            }
+            
+            if (txtBankTransactionId != null && bankTransactionId != null) {
+                txtBankTransactionId.setText(bankTransactionId);
+            }
+            
+            if (txtTransferFee != null) {
+                txtTransferFee.setText(currencyFormatter.format(transferFee));
+            }
+        } else if (cardVNPay != null) {
+            cardVNPay.setVisibility(View.GONE);
         }
 
         btnComplete.setOnClickListener(v -> goHome());
