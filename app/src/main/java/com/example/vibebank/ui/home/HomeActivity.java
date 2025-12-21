@@ -28,6 +28,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.vibebank.AccountManagementActivity;
 import com.example.vibebank.MyQRActivity;
+import com.example.vibebank.NotificationsActivity;
 import com.example.vibebank.ScanQRActivity;
 import com.example.vibebank.ui.profile.ProfileActivity;
 import com.example.vibebank.R;
@@ -258,7 +259,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         btnNotification.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(HomeActivity.this, "Thông báo", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(HomeActivity.this, NotificationsActivity.class);
+                startActivity(intent);
             }
         });
 

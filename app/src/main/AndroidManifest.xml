@@ -110,6 +110,9 @@
         <activity
             android:name=".ScanQRActivity"
             android:exported="false" />
+        <activity
+            android:name=".NotificationsActivity"
+            android:exported="false" />
     </application>
 
 </manifest>
