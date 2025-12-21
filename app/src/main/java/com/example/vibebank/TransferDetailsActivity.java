@@ -23,8 +23,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
 
 import com.example.vibebank.ui.OtpBottomSheetDialog;
+import com.example.vibebank.utils.ElectricBillMockService;
+import com.example.vibebank.utils.FlightTicketMockService;
 import com.example.vibebank.utils.PhoneAuthManager;
 import com.example.vibebank.utils.SessionManager;
+import com.example.vibebank.utils.WaterBillMockService;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
@@ -500,6 +503,31 @@ public class TransferDetailsActivity extends AppCompatActivity implements
                 String topupPhoneNumber = getIntent().getStringExtra("topupPhoneNumber");
                 String topupPackageName = getIntent().getStringExtra("topupPackageName");
                 android.util.Log.d("TransferDetailsActivity", "Topup payment completed: " + topupPhoneNumber + " - " + topupPackageName);
+            }
+
+            // If this is a flight ticket payment, just log it and save booking
+            boolean isFlightTicketPayment = getIntent().getBooleanExtra("isFlightTicketPayment", false);
+            if (isFlightTicketPayment) {
+                String flightCode = getIntent().getStringExtra("flightCode");
+                String airline = getIntent().getStringExtra("airline");
+                String departure = getIntent().getStringExtra("departure");
+                String destination = getIntent().getStringExtra("destination");
+                String departureDate = getIntent().getStringExtra("departureDate");
+                String departureTime = getIntent().getStringExtra("departureTime");
+                String arrivalTime = getIntent().getStringExtra("arrivalTime");
+                String seatClass = getIntent().getStringExtra("seatClass");
+                String duration = getIntent().getStringExtra("duration");
+                String passengerName = getIntent().getStringExtra("passengerName");
+                String passengerID = getIntent().getStringExtra("passengerID");
+                String passengerPhone = getIntent().getStringExtra("passengerPhone");
+                String passengerEmail = getIntent().getStringExtra("passengerEmail");
+                
+                android.util.Log.d("TransferDetailsActivity", "Flight ticket payment completed: " + flightCode + " - " + airline);
+                
+                // Save complete booking to SharedPreferences
+                FlightTicketMockService.bookTicket(flightCode, airline, departure, destination, 
+                        departureDate, departureTime, arrivalTime, seatClass, (long) amount, duration,
+                        passengerName, passengerID, passengerPhone, passengerEmail);
             }
 
             Intent intent = new Intent(TransferDetailsActivity.this, TransferResultActivity.class);

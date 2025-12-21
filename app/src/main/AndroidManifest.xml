@@ -126,6 +126,16 @@
             android:name=".TopupResultActivity"
             android:exported="false" />
         <activity
+            android:name=".FlightTicketActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".FlightTicketResultActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MyTicketsActivity"
+            android:exported="false" />
+        <activity
             android:name=".MyQRActivity"
             android:exported="false" />
         <activity

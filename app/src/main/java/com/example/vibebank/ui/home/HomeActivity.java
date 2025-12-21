@@ -30,6 +30,7 @@ import com.example.vibebank.AccountManagementActivity;
 import com.example.vibebank.ElectricBillActivity;
 import com.example.vibebank.WaterBillActivity;
 import com.example.vibebank.TopupActivity;
+import com.example.vibebank.FlightTicketActivity;
 import com.example.vibebank.MyQRActivity;
 import com.example.vibebank.NotificationsActivity;
 import com.example.vibebank.ScanQRActivity;
@@ -505,8 +506,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             startActivity(intent);
         });
 
-        findViewById(R.id.btnTicket).setOnClickListener(v ->
-            Toast.makeText(this, "Vé máy bay", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnTicket).setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, FlightTicketActivity.class);
+            startActivity(intent);
+        });
 
         findViewById(R.id.btnMovie).setOnClickListener(v ->
             Toast.makeText(this, "Vé xem phim", Toast.LENGTH_SHORT).show());
