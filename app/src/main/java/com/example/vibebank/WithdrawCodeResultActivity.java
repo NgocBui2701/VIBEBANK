@@ -14,7 +14,7 @@ import com.example.vibebank.ui.home.HomeActivity;
 import com.google.android.material.button.MaterialButton;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 
 public class WithdrawCodeResultActivity extends AppCompatActivity {
@@ -26,6 +26,7 @@ public class WithdrawCodeResultActivity extends AppCompatActivity {
     private String withdrawCode;
     private long amount;
     private String accountNumber;
+    private long expiryTimeMillis;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +44,7 @@ public class WithdrawCodeResultActivity extends AppCompatActivity {
         withdrawCode = intent.getStringExtra("WITHDRAW_CODE");
         amount = intent.getLongExtra("AMOUNT", 0);
         accountNumber = intent.getStringExtra("ACCOUNT_NUMBER");
+        expiryTimeMillis = intent.getLongExtra("EXPIRY_TIME", 0);
     }
 
     private void initViews() {
@@ -71,14 +73,19 @@ public class WithdrawCodeResultActivity extends AppCompatActivity {
         // Display amount
         txtAmount.setText(formatCurrency(amount) + " đ");
 
-        // Display account
-        txtAccount.setText(accountNumber);
+        // Display account - format if needed
+        if (accountNumber != null && !accountNumber.contains(" ")) {
+            String formatted = accountNumber.replaceAll("(.{4})", "$1 ").trim();
+            txtAccount.setText(formatted);
+        } else {
+            txtAccount.setText(accountNumber);
+        }
 
-        // Calculate and display expiry time (24 hours from now)
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.HOUR_OF_DAY, 24);
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", new Locale("vi", "VN"));
-        txtExpiry.setText(dateFormat.format(calendar.getTime()));
+        // Display expiry time from intent data
+        if (expiryTimeMillis > 0) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", new Locale("vi", "VN"));
+            txtExpiry.setText(dateFormat.format(new Date(expiryTimeMillis)));
+        }
 
         // Display status
         txtStatus.setText("Chưa sử dụng");

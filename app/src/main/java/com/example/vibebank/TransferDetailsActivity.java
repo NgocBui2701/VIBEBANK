@@ -493,20 +493,34 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             return null;
         }).addOnSuccessListener(aVoid -> {
             // Thành công
-            // Thông báo người gửi
+            // Thông báo người gửi qua notification bar
             sendNotification("Biến động số dư", "Tài khoản -" + formattedAmount + " VND. Nội dung: " + message);
+
+            // Lưu thông báo người gửi vào Firestore
+            Map<String, Object> senderNotification = new HashMap<>();
+            senderNotification.put("userId", currentUserId);
+            senderNotification.put("title", "Biến động số dư");
+            senderNotification.put("message", "Chuyển tiền -" + formattedAmount + " VND đến " + receiverName + " (" + receiverAccountNumber + "). Nội dung: " + message);
+            senderNotification.put("timestamp", new Date());
+            senderNotification.put("isRead", false);
+
+            db.collection("notifications")
+                    .add(senderNotification)
+                    .addOnFailureListener(e -> {
+                        // Log lỗi nhưng không chặn luồng
+                    });
 
             // Chỉ thông báo người nhận nếu là internal transfer
             if (!isExternalBank) {
-                Map<String, Object> notification = new HashMap<>();
-                notification.put("userId", receiverUid);
-                notification.put("title", "Biến động số dư");
-                notification.put("message", "Tài khoản " + receiverAccountNumber + ": +" + formattedAmount + " VND từ " + senderName + ". Nội dung: " + message);
-                notification.put("timestamp", new Date());
-                notification.put("isRead", false);
+                Map<String, Object> receiverNotification = new HashMap<>();
+                receiverNotification.put("userId", receiverUid);
+                receiverNotification.put("title", "Biến động số dư");
+                receiverNotification.put("message", "Nhận tiền +" + formattedAmount + " VND từ " + senderName + ". Nội dung: " + message);
+                receiverNotification.put("timestamp", new Date());
+                receiverNotification.put("isRead", false);
 
                 db.collection("notifications")
-                        .add(notification)
+                        .add(receiverNotification)
                         .addOnFailureListener(e -> {
                             // Log lỗi nếu cần, nhưng không chặn luồng chính vì tiền đã chuyển xong rồi
                         });

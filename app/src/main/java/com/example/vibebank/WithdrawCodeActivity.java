@@ -1,17 +1,28 @@
 package com.example.vibebank;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
+import com.google.firebase.Timestamp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Transaction;
 import java.text.NumberFormat;
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 
 public class WithdrawCodeActivity extends AppCompatActivity {
 
@@ -20,14 +31,28 @@ public class WithdrawCodeActivity extends AppCompatActivity {
     private EditText edtAmount, edtPin;
     private MaterialButton btn500k, btn1m, btn2m, btn3m, btn5m, btn10m;
     private MaterialButton btnGenerateCode;
+    private ProgressBar progressBar;
 
-    private long currentBalance = 50000000; // 50 triệu
+    // Firebase
+    private FirebaseFirestore db;
+    private String currentUserId;
+    
+    // Account data
+    private double currentBalance = 0;
+    private String accountNumber = "";
     private final String DEFAULT_PIN = "123456"; // Demo PIN
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_withdraw_code);
+
+        // Initialize Firebase
+        db = FirebaseFirestore.getInstance();
+        FirebaseAuth auth = FirebaseAuth.getInstance();
+        if (auth.getCurrentUser() != null) {
+            currentUserId = auth.getCurrentUser().getUid();
+        }
 
         initViews();
         setupListeners();
@@ -50,6 +75,7 @@ public class WithdrawCodeActivity extends AppCompatActivity {
         btn10m = findViewById(R.id.btn10m);
 
         btnGenerateCode = findViewById(R.id.btnGenerateCode);
+        progressBar = findViewById(R.id.progressBar);
     }
 
     private void setupListeners() {
@@ -102,9 +128,77 @@ public class WithdrawCodeActivity extends AppCompatActivity {
     }
 
     private void loadAccountInfo() {
-        // TODO: Load from database
-        txtAccountNumber.setText("1234 5678 9012");
-        txtBalance.setText("Số dư: " + formatCurrency(currentBalance) + " đ");
+        if (currentUserId == null) {
+            Toast.makeText(this, "Không tìm thấy thông tin người dùng", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        // Load from Firestore
+        // Load user info and account number from users collection first
+        db.collection("users").document(currentUserId)
+            .get()
+            .addOnSuccessListener(userDoc -> {
+                if (userDoc.exists()) {
+                    // Try to get account number from users collection
+                    accountNumber = userDoc.getString("account_number");
+                    if (accountNumber == null) {
+                        accountNumber = userDoc.getString("accountNumber");
+                    }
+
+                    if (accountNumber != null) {
+                        // Format account number: 1234567890 -> 1234 5678 90
+                        String formatted = accountNumber.replaceAll("(.{4})", "$1 ").trim();
+                        txtAccountNumber.setText(formatted);
+                    } else {
+                        // Try to load from accounts collection
+                        loadAccountNumberFromAccounts();
+                    }
+                }
+            })
+            .addOnFailureListener(e -> {
+                Toast.makeText(this, "Lỗi tải thông tin người dùng", Toast.LENGTH_SHORT).show();
+            });
+
+        // Load balance from accounts collection
+        db.collection("accounts").document(currentUserId)
+            .get()
+            .addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot.exists()) {
+                    Double balance = documentSnapshot.getDouble("balance");
+                    if (balance != null) {
+                        currentBalance = balance;
+                        txtBalance.setText("Số dư: " + formatCurrency((long)currentBalance) + " đ");
+                    }
+                } else {
+                    txtBalance.setText("Số dư: 0 đ");
+                }
+            })
+            .addOnFailureListener(e -> {
+                Toast.makeText(this, "Lỗi tải thông tin tài khoản", Toast.LENGTH_SHORT).show();
+            });
+    }
+
+    private void loadAccountNumberFromAccounts() {
+        db.collection("accounts").document(currentUserId)
+            .get()
+            .addOnSuccessListener(accountDoc -> {
+                if (accountDoc.exists()) {
+                    accountNumber = accountDoc.getString("account_number");
+                    if (accountNumber == null) {
+                        accountNumber = accountDoc.getString("accountNumber");
+                    }
+                }
+                
+                if (accountNumber == null) {
+                    // Generate account number based on userId
+                    accountNumber = "VB" + currentUserId.substring(0, Math.min(10, currentUserId.length())).toUpperCase();
+                }
+                
+                // Format and display
+                String formatted = accountNumber.replaceAll("(.{4})", "$1 ").trim();
+                txtAccountNumber.setText(formatted);
+            });
     }
 
     private void setAmount(long amount) {
@@ -172,16 +266,74 @@ public class WithdrawCodeActivity extends AppCompatActivity {
     }
 
     private void generateCode(long amount) {
+        btnGenerateCode.setEnabled(false);
+        progressBar.setVisibility(android.view.View.VISIBLE);
+
         // Generate random 6-digit code
         String code = String.format("%06d", (int)(Math.random() * 1000000));
 
-        // Navigate to result screen
-        Intent intent = new Intent(this, WithdrawCodeResultActivity.class);
-        intent.putExtra("WITHDRAW_CODE", code);
-        intent.putExtra("AMOUNT", amount);
-        intent.putExtra("ACCOUNT_NUMBER", txtAccountNumber.getText().toString());
-        startActivity(intent);
-        finish();
+        // Calculate expiry time (24 hours from now)
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.HOUR_OF_DAY, 24);
+        Timestamp expiryTime = new Timestamp(calendar.getTime());
+
+        // Create withdrawal code document
+        Map<String, Object> withdrawalCode = new HashMap<>();
+        withdrawalCode.put("userId", currentUserId);
+        withdrawalCode.put("code", code);
+        withdrawalCode.put("amount", amount);
+        withdrawalCode.put("accountNumber", accountNumber);
+        withdrawalCode.put("status", "ACTIVE"); // ACTIVE, USED, EXPIRED
+        withdrawalCode.put("createdAt", Timestamp.now());
+        withdrawalCode.put("expiryTime", expiryTime);
+        withdrawalCode.put("usedAt", null);
+
+        DocumentReference accountRef = db.collection("accounts").document(currentUserId);
+        
+        // Use transaction to deduct balance and save withdrawal code
+        db.runTransaction((Transaction.Function<Void>) transaction -> {
+            // Read current balance
+            Double balance = transaction.get(accountRef).getDouble("balance");
+            if (balance == null) balance = 0.0;
+            
+            // Deduct balance
+            transaction.update(accountRef, "balance", balance - amount);
+            
+            // Save withdrawal code to Firestore
+            DocumentReference codeRef = db.collection("withdrawal_codes").document();
+            transaction.set(codeRef, withdrawalCode);
+            
+            // Log transaction
+            String transId = UUID.randomUUID().toString();
+            Map<String, Object> log = new HashMap<>();
+            log.put("userId", currentUserId);
+            log.put("type", "SENT");
+            log.put("amount", amount);
+            log.put("content", "Rút tiền bằng mã ATM");
+            log.put("relatedAccountName", "ATM");
+            log.put("timestamp", Timestamp.now());
+            log.put("transactionId", transId);
+            
+            DocumentReference logRef = accountRef.collection("transactions").document(transId);
+            transaction.set(logRef, log);
+            
+            return null;
+        }).addOnSuccessListener(aVoid -> {
+            progressBar.setVisibility(android.view.View.GONE);
+            
+            // Navigate to result screen
+            Intent intent = new Intent(this, WithdrawCodeResultActivity.class);
+            intent.putExtra("WITHDRAW_CODE", code);
+            intent.putExtra("AMOUNT", amount);
+            intent.putExtra("ACCOUNT_NUMBER", accountNumber);
+            intent.putExtra("EXPIRY_TIME", expiryTime.toDate().getTime());
+            startActivity(intent);
+            finish();
+        }).addOnFailureListener(e -> {
+            progressBar.setVisibility(android.view.View.GONE);
+            btnGenerateCode.setEnabled(true);
+            Toast.makeText(this, "Lỗi tạo mã rút tiền: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        });
     }
 
     private String formatCurrency(long amount) {
