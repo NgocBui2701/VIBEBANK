@@ -11,20 +11,24 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class LoginViewModel extends ViewModel {
 
     public MutableLiveData<String> loginResult = new MutableLiveData<>();
+    public MutableLiveData<Boolean> needOtpVerify = new MutableLiveData<>(false);
     public MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
 
     // Biến tạm để lưu thông tin user khi login thành công
-    public String successUserId = "";
-    public String successFullName = "";
+    public String tempUserId = "";
+    public String tempFullName = "";
+    public String tempPhone = "";
+    private String authTokenFromApi = "";
 
     private static final int MAX_ATTEMPTS = 5;
     private static final long LOCK_TIME_MILLIS = 15 * 60 * 1000; // 15 phút
 
-    public void login(String phone, String password) {
+    public void login(String phone, String password, String currentDeviceId) {
         if (phone.isEmpty() || password.isEmpty()) {
             loginResult.setValue("Vui lòng điền đầy đủ thông tin");
             return;
@@ -45,7 +49,9 @@ public class LoginViewModel extends ViewModel {
                     } else {
                         // 2. Lấy document user đầu tiên tìm thấy
                         DocumentSnapshot userDoc = querySnapshot.getDocuments().get(0);
-                        String userId = userDoc.getId();
+                        tempUserId = userDoc.getId();
+                        tempFullName = userDoc.getString("full_name");
+                        tempPhone = phone;
 
                         Long lockUntil = userDoc.getLong("lock_until"); // Timestamp
                         long currentTime = System.currentTimeMillis();
@@ -65,15 +71,24 @@ public class LoginViewModel extends ViewModel {
 
                         if (storedHash != null && PasswordUtils.checkPassword(password, storedHash)) {
                             // Mật khẩu đúng
-                            resetFailedAttempts(db, userId);
+                            resetFailedAttempts(db, tempUserId);
 
-                            successUserId = userId;
-                            successFullName = userDoc.getString("full_name");
-                            isLoading.setValue(false);
-                            loginResult.setValue(null); // null báo hiệu thành công
+                            authTokenFromApi = UUID.randomUUID().toString();
+
+                            String storedDeviceId = userDoc.getString("trusted_device_id");
+
+                            if (storedDeviceId == null || !storedDeviceId.equals(currentDeviceId)) {
+                                // -> Thiết bị lạ -> Cần OTP
+                                isLoading.setValue(false);
+                                needOtpVerify.setValue(true);
+                            } else {
+                                // -> Thiết bị quen -> Login luôn
+                                isLoading.setValue(false);
+                                loginResult.setValue(null); // Success
+                            }
                         } else {
                             // Mật khẩu sai
-                            handleFailedLogin(db, userId, failedAttempts);
+                            handleFailedLogin(db, tempUserId, failedAttempts);
                         }
                     }
                 })
@@ -82,6 +97,10 @@ public class LoginViewModel extends ViewModel {
                     loginResult.setValue("Lỗi kết nối: " + e.getMessage());
                     Log.e("Login", "Error: ", e);
                 });
+    }
+
+    public String getAuthToken() {
+        return authTokenFromApi;
     }
 
     // Reset số lần sai khi login thành công
@@ -117,6 +136,33 @@ public class LoginViewModel extends ViewModel {
                 .addOnCompleteListener(task -> {
                     isLoading.setValue(false);
                     loginResult.setValue(errorMsg);
+                });
+    }
+
+    // Hàm cập nhật trusted_device_id sau khi OTP thành công
+    public void updateTrustedDevice(String deviceId) {
+        isLoading.setValue(true);
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("trusted_device_id", deviceId);
+
+        // tempUserId đã được lưu ở bước login check pass
+        if (tempUserId == null || tempUserId.isEmpty()) {
+            loginResult.setValue("Lỗi: Không tìm thấy User ID");
+            return;
+        }
+
+        db.collection("users").document(tempUserId)
+                .update(updates)
+                .addOnSuccessListener(aVoid -> {
+                    isLoading.setValue(false);
+                    // Báo thành công -> LoginActivity sẽ tự chuyển màn
+                    loginResult.setValue(null);
+                })
+                .addOnFailureListener(e -> {
+                    isLoading.setValue(false);
+                    loginResult.setValue("Lỗi cập nhật thiết bị: " + e.getMessage());
                 });
     }
 }

@@ -218,6 +218,8 @@ public class RegisterViewModel extends ViewModel {
         userMap.put("phone_number", dataManager.getPhone());
         userMap.put("email", dataManager.getEmail());
         userMap.put("address", dataManager.getAddress());
+        userMap.put("birth_date", dataManager.getBirthDate());
+        userMap.put("gender", dataManager.getGender());
         userMap.put("created_at", new Date());
         String rawPassword = dataManager.getPassword();
         String hashedPassword = PasswordUtils.hashPassword(rawPassword);

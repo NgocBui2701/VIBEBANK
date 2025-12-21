@@ -96,7 +96,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         sessionManager = new SessionManager(this);
         if (!sessionManager.isLoggedIn()) {
             // Chưa đăng nhập thì đá về Login
-            sessionManager.logoutUser();
+            sessionManager.logout();
             finish();
             return;
         }
@@ -243,20 +243,22 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void setupData() {
-        String userId = sessionManager.getUserId();
+        String userId = sessionManager.getCurrentUserId();
+        if (userId == null || userId.isEmpty()) {
+            sessionManager.logout();
+            return;
+        }
+
+        String fullName = sessionManager.getUserFullName();
+        txtUserName.setText(fullName);
 
         // 1. Load tên người dùng
-        // Trước tiên lấy từ Session cho nhanh
-        String sessionName = sessionManager.getFullName();
-        if (!sessionName.isEmpty()) {
-            txtUserName.setText(sessionName.toUpperCase());
-        }
-        // Gọi API cập nhật lại tên (phòng trường hợp đổi tên ở thiết bị khác)
         viewModel.loadUserProfile(userId);
 
         // Lắng nghe thay đổi tên từ ViewModel
         viewModel.userName.observe(this, name -> {
             if (name != null) txtUserName.setText(name);
+            sessionManager.saveUserFullName(name);
         });
 
         // 2. Load và lắng nghe Số dư

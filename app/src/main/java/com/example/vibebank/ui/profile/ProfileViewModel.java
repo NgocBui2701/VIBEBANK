@@ -48,9 +48,8 @@ public class ProfileViewModel extends ViewModel {
                         phone.setValue(doc.getString("phone_number"));
                         email.setValue(doc.getString("email"));
                         address.setValue(doc.getString("address"));
-
-                        // Nếu trong bảng users có lưu ngày sinh/giới tính thì lấy ở đây
-                        // (Tùy thuộc vào lúc Đăng ký bạn lưu ở đâu)
+                        birthday.setValue(doc.getString("birth_date"));
+                        gender.setValue(doc.getString("gender"));
                     }
                 });
 
@@ -78,13 +77,7 @@ public class ProfileViewModel extends ViewModel {
                 .addOnSuccessListener(doc -> {
                     if (doc.exists()) {
                         cccd.setValue(doc.getString("id_number"));
-                        issueDate.setValue(doc.getString("issue_date"));
-
-                        String sex = doc.getString("gender");
-                        gender.setValue(sex != null ? sex : "Chưa cập nhật");
-
-                        Timestamp birthTs = doc.getTimestamp("birth_date");
-                        birthday.setValue(birthTs != null ? formatDate(birthTs.toDate()) : "Chưa cập nhật");
+                        issueDate.setValue(doc.getString("issued_date"));
                     }
                     isLoading.setValue(false);
                 })

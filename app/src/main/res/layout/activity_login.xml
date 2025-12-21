@@ -208,6 +208,20 @@
 
     </com.google.android.material.card.MaterialCardView>
 
+    <ImageView
+        android:id="@+id/imgFingerprint"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="24dp"
+        android:src="@drawable/ic_fingerprint"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="5dp"
+        app:tint="#A3A3A3"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        />
+
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"

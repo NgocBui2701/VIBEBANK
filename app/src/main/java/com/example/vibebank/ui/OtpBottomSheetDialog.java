@@ -88,6 +88,9 @@ public class OtpBottomSheetDialog extends BottomSheetDialogFragment {
         if (getArguments() != null) mVerificationId = getArguments().getString("verificationId");
 
         initViews(view);
+
+        btnContinue.setEnabled(false);
+
         setupOtpInputs();
         startCountDownTimer();
 

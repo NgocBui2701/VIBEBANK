@@ -1,18 +1,30 @@
 package com.example.vibebank.ui.profile;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.util.Base64;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.vibebank.R;
+import com.example.vibebank.utils.BiometricHelper;
 import com.example.vibebank.utils.SessionManager;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.button.MaterialButton;
+
+import javax.crypto.Cipher;
 
 public class ProfileActivity extends AppCompatActivity {
 
@@ -32,20 +44,29 @@ public class ProfileActivity extends AppCompatActivity {
 
     private ProfileViewModel viewModel;
     private SessionManager sessionManager;
+    private BiometricHelper biometricHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_profile);
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.profile), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
 
         sessionManager = new SessionManager(this);
         viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
+        biometricHelper = new BiometricHelper();
 
         initViews();
         setupListeners();
         setupObservers();
 
-        String uid = sessionManager.getUserId();
+        String uid = sessionManager.getCurrentUserId();
         viewModel.loadUserProfile(uid);
     }
 
@@ -81,6 +102,7 @@ public class ProfileActivity extends AppCompatActivity {
         // Security
         btnChangePassword = findViewById(R.id.btnChangePassword);
         switchBiometric = findViewById(R.id.switchBiometric);
+        switchBiometric.setChecked(sessionManager.isBiometricEnabled());
 
         // Settings
         switchNightMode = findViewById(R.id.switchNightMode);
@@ -166,17 +188,19 @@ public class ProfileActivity extends AppCompatActivity {
 
         // Change password
         btnChangePassword.setOnClickListener(v -> {
-            // TODO: Open change password screen
-            showToast("Đổi mật khẩu");
+            Intent intent = new Intent(this, ChangePasswordActivity.class);
+            startActivity(intent);
+
         });
 
         // Biometric toggle
         switchBiometric.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            // TODO: Enable/disable biometric authentication
-            if (isChecked) {
-                showToast("Đã bật sinh trắc học");
-            } else {
-                showToast("Đã tắt sinh trắc học");
+            if (buttonView.isPressed()) {
+                if (isChecked) {
+                    enableBiometric();
+                } else {
+                    disableBiometric();
+                }
             }
         });
 
@@ -212,13 +236,120 @@ public class ProfileActivity extends AppCompatActivity {
         });
     }
 
+    private void enableBiometric() {
+        androidx.biometric.BiometricManager biometricManager = androidx.biometric.BiometricManager.from(this);
+        int canAuthenticate = biometricManager.canAuthenticate(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG);
+
+        if (canAuthenticate != androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS) {
+            showToast("Thiết bị không hỗ trợ sinh trắc học bảo mật cao");
+            switchBiometric.setChecked(false);
+            return;
+        }
+        try {
+            // 1. Tạo Key (nếu chưa có)
+            biometricHelper.generateSecretKey();
+
+            // 2. Lấy Cipher để chuẩn bị mã hóa
+            Cipher cipher;
+            try {
+                cipher = biometricHelper.getCipherForEncryption();
+            } catch (android.security.keystore.KeyPermanentlyInvalidatedException e) {
+                // Lỗi này xảy ra khi user thêm/xóa vân tay mới trong cài đặt máy
+                // -> Key cũ bị vô hiệu hóa -> Cần xóa đi tạo lại
+                biometricHelper.deleteKey();
+                showToast("Dữ liệu vân tay đã thay đổi. Vui lòng tắt và bật lại lần nữa để cập nhật.");
+                switchBiometric.setChecked(false);
+                return;
+            } catch (Exception e) {
+                // Các lỗi khác (như bị khóa do sai quá nhiều lần)
+                // Ta cũng xóa Key đi cho chắc ăn, để lần sau nó refresh lại trạng thái
+                biometricHelper.deleteKey();
+
+                showToast("Lỗi khởi tạo bảo mật. Vui lòng thử lại.");
+                e.printStackTrace();
+                switchBiometric.setChecked(false);
+                return;
+            }
+
+            // 3. Hiển thị Biometric Prompt
+            BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("Xác thực sinh trắc học")
+                    .setSubtitle("Xác nhận để kích hoạt")
+                    .setNegativeButtonText("Hủy")
+                    .setAllowedAuthenticators(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG)
+                    .build();
+
+            BiometricPrompt biometricPrompt = new BiometricPrompt(this,
+                    ContextCompat.getMainExecutor(this),
+                    new BiometricPrompt.AuthenticationCallback() {
+
+                        @Override
+                        public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                            super.onAuthenticationSucceeded(result);
+                            try {
+                                // 4. Lấy Cipher đã được mở khóa bởi vân tay
+                                Cipher successCipher = result.getCryptoObject().getCipher();
+
+                                // 5. Mã hóa Token hiện tại (Lấy từ Session đang đăng nhập)
+                                String currentToken = sessionManager.getToken();
+                                if (currentToken == null) {
+                                    showToast("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại");
+                                    switchBiometric.setChecked(false);
+                                    return;
+                                }
+                                byte[] encryptedBytes = successCipher.doFinal(currentToken.getBytes("UTF-8"));
+
+                                // 6. Lưu dữ liệu quan trọng vào SharedPreferences
+                                String encryptedTokenBase64 = Base64.encodeToString(encryptedBytes, Base64.DEFAULT);
+                                String ivBase64 = Base64.encodeToString(successCipher.getIV(), Base64.DEFAULT);
+
+                                sessionManager.saveBiometricCredentials(encryptedTokenBase64, ivBase64);
+
+                                showToast("Đã bật sinh trắc học thành công!");
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                showToast("Lỗi mã hóa dữ liệu.");
+                                // Rollback switch nếu lỗi
+                                switchBiometric.setChecked(false);
+                            }
+                        }
+
+                        @Override
+                        public void onAuthenticationError(int errorCode, CharSequence errString) {
+                            super.onAuthenticationError(errorCode, errString);
+                            showToast("Lỗi xác thực");
+                            switchBiometric.setChecked(false); // Tắt switch nếu user hủy hoặc lỗi
+                        }
+
+                        @Override
+                        public void onAuthenticationFailed() {
+                            super.onAuthenticationFailed();
+                            // Vân tay sai, cho thử lại, không cần tắt switch ngay
+                        }
+                    });
+
+            // GỌI XÁC THỰC KÈM CRYPTO OBJECT (Quan trọng nhất)
+            biometricPrompt.authenticate(promptInfo, new BiometricPrompt.CryptoObject(cipher));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showToast("Thiết bị không hỗ trợ hoặc lỗi khởi tạo.");
+            switchBiometric.setChecked(false);
+        }
+    }
+
+    private void disableBiometric() {
+        // Xóa dữ liệu mã hóa và IV
+        sessionManager.clearBiometricCredentials();
+        showToast("Đã tắt sinh trắc học");
+    }
+
     private void showLogoutConfirmation() {
         androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle("Đăng xuất")
                 .setMessage("Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng?")
                 .setPositiveButton("Đăng xuất", (d, w) -> {
-                    sessionManager.logoutUser();
-                    finishAffinity();
+                    sessionManager.logout();
                 })
                 .setNegativeButton("Hủy", (d, w) -> d.dismiss())
                 .show();

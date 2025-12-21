@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
     <!-- Permissions for Google Maps -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera" android:required="true" />
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true" />
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -22,17 +23,18 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.VibeBank">
-        
+        <activity
+            android:name=".ui.profile.ChangePasswordActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan"/>
         <!-- Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao" />
-        
-        <!-- Google Fonts Provider -->
+            android:value="AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao" /> <!-- Google Fonts Provider -->
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />
-        
+
         <activity
             android:name=".ui.login.LoginActivity"
             android:exported="true">
@@ -42,50 +44,66 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity android:name=".ui.register.RegisterActivity"
+        <activity
+            android:name=".ui.register.RegisterActivity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".ui.register.Register2Activity"
+        <activity
+            android:name=".ui.register.Register2Activity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".ui.register.Register3Activity"
+        <activity
+            android:name=".ui.register.Register3Activity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".ui.register.CustomCameraActivity"
+        <activity
+            android:name=".ui.register.CustomCameraActivity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".ui.register.Register4Activity"
+        <activity
+            android:name=".ui.register.Register4Activity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".ui.register.Register5Activity"
+        <activity
+            android:name=".ui.register.Register5Activity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".ui.forgotpassword.ForgotPasswordActivity"
+        <activity
+            android:name=".ui.forgotpassword.ForgotPasswordActivity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".ui.forgotpassword.ResetPasswordActivity"
+        <activity
+            android:name=".ui.forgotpassword.ResetPasswordActivity"
             android:windowSoftInputMode="adjustPan" />
         <activity android:name=".ui.home.HomeActivity" />
-        <activity android:name=".AccountManagementActivity" 
+        <activity
+            android:name=".AccountManagementActivity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".TransferActivity" 
+        <activity
+            android:name=".TransferActivity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".TransferSelectBankActivity" 
+        <activity
+            android:name=".TransferSelectBankActivity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".TransferEnterAccountActivity" 
+        <activity
+            android:name=".TransferEnterAccountActivity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".TransferDetailsActivity" 
+        <activity
+            android:name=".TransferDetailsActivity"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".TransferResultActivity" 
+        <activity
+            android:name=".TransferResultActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".TransactionHistoryActivity" 
+        <activity
+            android:name=".TransactionHistoryActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".ui.profile.ProfileActivity"
+        <activity
+            android:name=".ui.profile.ProfileActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".WithdrawCodeActivity" 
+        <activity
+            android:name=".WithdrawCodeActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustPan" />
-        <activity android:name=".WithdrawCodeResultActivity" 
+        <activity
+            android:name=".WithdrawCodeResultActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustPan" />
-
     </application>
 
 </manifest>
