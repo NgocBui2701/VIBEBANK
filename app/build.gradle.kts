@@ -80,4 +80,9 @@ dependencies {
     // Thư viện hỗ trợ Biometric
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
+    // Glide (Để hiển thị ảnh mượt mà, bo tròn)
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+
+    implementation("com.cloudinary:cloudinary-android:2.5.0")
 }

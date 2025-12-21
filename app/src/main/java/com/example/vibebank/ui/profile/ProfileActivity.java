@@ -3,12 +3,19 @@ package com.example.vibebank.ui.profile;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Base64;
+import android.util.Patterns;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
@@ -17,12 +24,19 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.bumptech.glide.Glide;
 import com.example.vibebank.R;
 import com.example.vibebank.utils.BiometricHelper;
+import com.example.vibebank.utils.CloudinaryHelper;
 import com.example.vibebank.utils.SessionManager;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.textfield.TextInputEditText;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.crypto.Cipher;
 
@@ -46,6 +60,8 @@ public class ProfileActivity extends AppCompatActivity {
     private SessionManager sessionManager;
     private BiometricHelper biometricHelper;
 
+    private ActivityResultLauncher<PickVisualMediaRequest> pickMedia;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,13 +77,33 @@ public class ProfileActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
         viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
         biometricHelper = new BiometricHelper();
+        CloudinaryHelper.initCloudinary(this);
 
         initViews();
+        setupImagePicker();
         setupListeners();
         setupObservers();
 
         String uid = sessionManager.getCurrentUserId();
         viewModel.loadUserProfile(uid);
+    }
+
+    private void setupImagePicker() {
+        pickMedia = registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
+            if (uri != null) {
+                // A. Hiển thị ảnh xem trước ngay lập tức cho mượt (UI Feedback)
+                Glide.with(this)
+                        .load(uri)
+                        .circleCrop()
+                        .into(imgAvatar);
+
+                // B. Gọi ViewModel để xử lý Upload ngầm
+                String userId = sessionManager.getCurrentUserId();
+                viewModel.uploadAvatar(uri, userId);
+            } else {
+                showToast("Đã hủy chọn ảnh");
+            }
+        });
     }
 
     private void initViews() {
@@ -156,6 +192,17 @@ public class ProfileActivity extends AppCompatActivity {
 
         // 4. Contact Info
         viewModel.email.observe(this, val -> setProfileInfoItem(itemEmail, "Email", val));
+
+        viewModel.avatarUrl.observe(this, url -> {
+            if (url != null && !url.isEmpty()) {
+                Glide.with(this)
+                        .load(url)
+                        .placeholder(R.drawable.ic_avatar_placeholder)
+                        .error(R.drawable.ic_avatar_placeholder)
+                        .circleCrop()
+                        .into(imgAvatar);
+            }
+        });
     }
 
     private void setupListeners() {
@@ -170,21 +217,16 @@ public class ProfileActivity extends AppCompatActivity {
 
         // Change avatar
         btnChangeAvatar.setOnClickListener(v -> {
-            // TODO: Open image picker
-            showToast("Chọn ảnh đại diện");
+            pickMedia.launch(new PickVisualMediaRequest.Builder()
+                    .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                    .build());
         });
 
         // Edit personal info
-        btnEditPersonalInfo.setOnClickListener(v -> {
-            // TODO: Open edit personal info dialog
-            showToast("Chỉnh sửa thông tin cá nhân");
-        });
+        btnEditPersonalInfo.setOnClickListener(v -> showEditPersonalDialog());
 
         // Edit contact info
-        btnEditContactInfo.setOnClickListener(v -> {
-            // TODO: Open edit contact info dialog
-            showToast("Chỉnh sửa thông tin liên hệ");
-        });
+        btnEditContactInfo.setOnClickListener(v -> showEditContactDialog());
 
         // Change password
         btnChangePassword.setOnClickListener(v -> {
@@ -233,6 +275,212 @@ public class ProfileActivity extends AppCompatActivity {
         // Logout
         btnLogout.setOnClickListener(v -> {
             showLogoutConfirmation();
+        });
+    }
+
+    private void showEditPersonalDialog() {
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_edit_personal, null);
+
+        TextInputEditText edtAddress = view.findViewById(R.id.edtEditAddress);
+        TextInputEditText edtBirthday = view.findViewById(R.id.edtEditBirthday);
+        AutoCompleteTextView edtGender = view.findViewById(R.id.edtEditGender);
+
+        edtAddress.setText(viewModel.address.getValue());
+        edtBirthday.setText(viewModel.birthday.getValue());
+        edtGender.setText(viewModel.gender.getValue());
+
+        String[] genders = new String[]{"Nam", "Nữ"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_dropdown_item_1line, // Layout item
+                genders
+        );
+        edtGender.setAdapter(adapter);
+
+        String currentGender = viewModel.gender.getValue();
+        if (currentGender != null && !currentGender.isEmpty()) {
+            edtGender.setText(currentGender, false);
+        } else {
+            edtGender.setText("Nam", false);
+        }
+
+        edtGender.setOnClickListener(v -> edtGender.showDropDown());
+
+        edtBirthday.setOnClickListener(v -> {
+            // Lấy ngày hiện tại để mặc định hiển thị
+            java.util.Calendar calendar = java.util.Calendar.getInstance();
+
+            // Nếu đã có ngày sinh cũ, parse ra để hiển thị đúng ngày đó trên lịch
+            try {
+                String currentDob = edtBirthday.getText().toString();
+                if (!currentDob.isEmpty()) {
+                    java.util.Date date = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).parse(currentDob);
+                    if (date != null) calendar.setTime(date);
+                }
+            } catch (Exception e) { e.printStackTrace(); }
+
+            int year = calendar.get(java.util.Calendar.YEAR);
+            int month = calendar.get(java.util.Calendar.MONTH);
+            int day = calendar.get(java.util.Calendar.DAY_OF_MONTH);
+
+            // Hiển thị lịch
+            new android.app.DatePickerDialog(this, (view1, selectedYear, selectedMonth, selectedDay) -> {
+                // Format thành dd/MM/yyyy
+                String selectedDate = String.format(java.util.Locale.getDefault(), "%02d/%02d/%d", selectedDay, selectedMonth + 1, selectedYear);
+                edtBirthday.setText(selectedDate);
+                edtBirthday.setError(null); // Xóa lỗi nếu có
+            }, year, month, day).show();
+        });
+
+        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setView(view)
+                .setCancelable(false)
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Lưu", null)
+                .create();
+
+        dialog.show();
+
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE).setTextColor(android.graphics.Color.RED);
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setTextColor(android.graphics.Color.parseColor("#4CAF50"));
+
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String newAddress = edtAddress.getText().toString().trim();
+            String newBirthday = edtBirthday.getText().toString().trim();
+            String newGender = edtGender.getText().toString().trim();
+
+            String oldAddress = viewModel.address.getValue();
+            String oldBirthday = viewModel.birthday.getValue();
+            String oldGender = viewModel.gender.getValue();
+
+            java.util.regex.Pattern ADDRESS_PATTERN = java.util.regex.Pattern.compile("^[\\p{L}0-9\\s,./-]+$");
+
+            if (newAddress.isEmpty() || newAddress.length() < 10 || !ADDRESS_PATTERN.matcher(newAddress).matches()) {
+                edtAddress.setError("Địa chỉ không hợp lệ");
+                return;
+            }
+
+            boolean isAddressSame = newAddress.equals(oldAddress);
+            boolean isBirthdaySame = newBirthday.equals(oldBirthday);
+            boolean isGenderSame = newGender.equals(oldGender);
+
+            if (isAddressSame && isBirthdaySame && isGenderSame) {
+                dialog.dismiss();
+                return;
+            }
+
+            Map<String, Object> updates = new HashMap<>();
+            // Chỉ put cái nào thay đổi (Tối ưu)
+            if (!isAddressSame) updates.put("address", newAddress);
+            if (!isBirthdaySame) updates.put("birth_date", newBirthday);
+            if (!isGenderSame) updates.put("gender", newGender);
+
+            dialog.dismiss();
+
+            showConfirmSecurityDialog(() -> {
+                String uid = sessionManager.getCurrentUserId();
+                viewModel.updateUserProfile(uid, updates);
+            });
+        });
+    }
+
+    private void showEditContactDialog() {
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_edit_contact, null);
+        TextInputEditText edtEmail = view.findViewById(R.id.edtEditEmail);
+
+        // Điền email hiện tại
+        edtEmail.setText(viewModel.email.getValue());
+
+        new MaterialAlertDialogBuilder(this)
+                .setView(view)
+                .setCancelable(false)
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Lưu", (dialog, which) -> {
+                })
+                .create();
+
+        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setView(view)
+                .setCancelable(false)
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Lưu", null)
+                .show();
+
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String newEmail = edtEmail.getText().toString().trim();
+            String currentEmail = viewModel.email.getValue();
+
+            // 1. Validate cơ bản
+            if (newEmail.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(newEmail).matches()) {
+                edtEmail.setError("Email không hợp lệ");
+            }
+            if (newEmail.equals(currentEmail)) {
+                dialog.dismiss();
+                return;
+            }
+
+            // 2. Check trùng Email
+            viewModel.checkEmailExists(newEmail, isExists -> {
+                if (isExists) {
+                    edtEmail.setError("Email này đã được sử dụng bởi tài khoản khác!");
+                } else {
+                    // Email hợp lệ -> Đóng dialog nhập liệu -> Mở dialog xác thực
+                    dialog.dismiss();
+                    showConfirmSecurityDialog(() -> {
+                        // Hành động cần làm khi pass đúng: Update Email
+                        Map<String, Object> updates = new HashMap<>();
+                        updates.put("email", newEmail);
+                        String uid = sessionManager.getCurrentUserId();
+                        viewModel.updateUserProfile(uid, updates);
+                    });
+                }
+            });
+        });
+
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE)
+                .setTextColor(android.graphics.Color.RED);
+
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(android.graphics.Color.parseColor("#4CAF50"));
+    }
+
+    private void showConfirmSecurityDialog(Runnable onSuccessAction) {
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_confirm_password, null);
+        TextInputEditText edtPass = view.findViewById(R.id.edtConfirmPass);
+
+        androidx.appcompat.app.AlertDialog authDialog = new MaterialAlertDialogBuilder(this)
+                .setView(view)
+                .setCancelable(false)
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Xác nhận", null) // Override sau
+                .show();
+
+        authDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE)
+                .setTextColor(android.graphics.Color.RED); // Hủy -> Đỏ
+
+        authDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(android.graphics.Color.parseColor("#4CAF50")); // Xác nhận -> Xanh lá
+
+        authDialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String password = edtPass.getText().toString().trim();
+
+            if (password.isEmpty()) {
+                edtPass.setError("Vui lòng nhập mật khẩu");
+                return;
+            }
+
+            // Gọi ViewModel check password
+            if (viewModel.validatePassword(password)) {
+                // MẬT KHẨU ĐÚNG
+                authDialog.dismiss();
+
+                // ---> CHẠY HÀNH ĐỘNG ĐƯỢC TRUYỀN VÀO <---
+                if (onSuccessAction != null) {
+                    onSuccessAction.run();
+                }
+            } else {
+                edtPass.setError("Mật khẩu không đúng!");
+            }
         });
     }
 
