@@ -14,6 +14,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -55,6 +56,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     private String receiverUid, receiverAccountNumber, receiverName;
     private LinearLayout llSuggestions;
     private static final double MAX_SUGGESTION_LIMIT = 999999999;
+    private static final double AMOUNT_TRANSACTION_LIMIT = 500000000;
     private TextView tvSuggest1, tvSuggest2, tvSuggest3;
 
     // Các biến cho OTP và Lockout
@@ -65,7 +67,10 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     private static final String KEY_FAILED_ATTEMPTS = "failed_attempts";
     private static final String KEY_LOCKOUT_TIME = "lockout_timestamp";
     private static final int MAX_FAILED_ATTEMPTS = 3;
-    private static final long LOCKOUT_DURATION = 30 * 60 * 1000; // 30 phút
+    private static final long LOCKOUT_DURATION = 1 * 60 * 1000; // 30 phút
+    private ProgressBar progressBar;
+    private double currentUserBalance = 0;
+    private boolean isSenderInfoLoaded = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,22 +81,43 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         phoneAuthManager = new PhoneAuthManager(this, this);
         sessionManager = new SessionManager(this);
 
+        // Ánh xạ
+        tvReceiverBank = findViewById(R.id.txtRecipientBank);
+        tvReceiverName = findViewById(R.id.txtRecipientName);
+        tvReceiverAccount = findViewById(R.id.txtRecipientAccount);
+        edtAmount = findViewById(R.id.edtAmount);
+        edtMessage = findViewById(R.id.edtMessage);
+        cbSaveContact = findViewById(R.id.cbSaveRecipient);
+        btnTransfer = findViewById(R.id.btnTransfer);
+        View btnBack = findViewById(R.id.btnBack);
+        progressBar = findViewById(R.id.progressBar);
+
+        llSuggestions = findViewById(R.id.llSuggestions);
+        tvSuggest1 = findViewById(R.id.tvSuggest1);
+        tvSuggest2 = findViewById(R.id.tvSuggest2);
+        tvSuggest3 = findViewById(R.id.tvSuggest3);
+
+        // Vô hiệu hóa chờ hoàn tất lấy dữ liệu
+        btnTransfer.setEnabled(false);
+        edtAmount.setEnabled(false);
+        edtMessage.setEnabled(false);
+
         // Lấy ID người dùng hiện tại
-        // 1. Lấy từ Firebase Auth
-        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+        // Lấy ID người dùng từ SessionManager
+        currentUserId = sessionManager.getCurrentUserId();
+
+        // Lấy từ Firebase Auth
+        if (currentUserId == null && FirebaseAuth.getInstance().getCurrentUser() != null) {
             currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         }
 
-        // 2. Nếu null, lấy từ SessionManager (đồng bộ với LoginActivity)
-        if (currentUserId == null && sessionManager.isLoggedIn()) {
-            currentUserId = sessionManager.getCurrentUserId();
-        }
-
-        // 3. Lấy từ SharedPreferences "UserPrefs"
+        //  Lấy ID người dùng từ SharedPreferences
         if (currentUserId == null) {
             SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
             currentUserId = prefs.getString("current_user_id", null);
         }
+
+        android.util.Log.d("TransferDetails", "Current User ID: " + currentUserId);
 
         // Kiểm tra kết quả cuối cùng
         if (currentUserId == null) {
@@ -120,26 +146,11 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             finish();
             return;
         }
-        
+
         // If receiverName is null, use account number as fallback
         if (receiverName == null || receiverName.isEmpty()) {
             receiverName = "Tài khoản " + receiverAccountNumber;
         }
-
-        // Ánh xạ
-        tvReceiverBank = findViewById(R.id.txtRecipientBank);
-        tvReceiverName = findViewById(R.id.txtRecipientName);
-        tvReceiverAccount = findViewById(R.id.txtRecipientAccount);
-        edtAmount = findViewById(R.id.edtAmount);
-        edtMessage = findViewById(R.id.edtMessage);
-        cbSaveContact = findViewById(R.id.cbSaveRecipient);
-        btnTransfer = findViewById(R.id.btnTransfer);
-        View btnBack = findViewById(R.id.btnBack);
-
-        llSuggestions = findViewById(R.id.llSuggestions);
-        tvSuggest1 = findViewById(R.id.tvSuggest1);
-        tvSuggest2 = findViewById(R.id.tvSuggest2);
-        tvSuggest3 = findViewById(R.id.tvSuggest3);
 
         // Setup UI
         tvReceiverBank.setText(bankName != null ? bankName : "VibeBank");
@@ -163,15 +174,35 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     }
 
     private void preCheckTransfer() {
+        if (!isSenderInfoLoaded) {
+            Toast.makeText(this, "Đang tải thông tin tài khoản. Vui lòng đợi trong giây lát...", Toast.LENGTH_SHORT).show();
+            // Tùy chọn: Gọi lại hàm tải dữ liệu nếu bị kẹt
+            fetchSenderInfo();
+            return; // Dừng ngay, không chạy tiếp code bên dưới
+        }
         // Kiểm tra đầu vào cơ bản
         String amountStr = edtAmount.getText().toString().replace(".", "");
+
         if (amountStr.isEmpty()) {
             edtAmount.setError("Vui lòng nhập số tiền");
             return;
         }
+
         double amount = Double.parseDouble(amountStr);
         if (amount <= 0) {
             edtAmount.setError("Số tiền phải lớn hơn 0");
+            return;
+        }
+        if (amount < 10000) {
+            edtAmount.setError("Giao dịch tối thiểu 10.000 VND");
+            return;
+        }
+        if (amount > AMOUNT_TRANSACTION_LIMIT) {
+            edtAmount.setError("Giao dịch tối đa " + formatMoney(AMOUNT_TRANSACTION_LIMIT) + " VND");
+            return;
+        }
+        if (amount > currentUserBalance) {
+            showErrorDialog("Số dư tài khoản không đủ để thực hiện giao dịch");
             return;
         }
 
@@ -186,6 +217,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         // Nếu có SĐT thì gửi OTP
         if (senderPhone != null && !senderPhone.isEmpty()) {
             // Show loading
+            setLoading(true);
             Toast.makeText(this, "Đang gửi mã OTP...", Toast.LENGTH_SHORT).show();
             phoneAuthManager.sendOtp(senderPhone);
         } else {
@@ -221,7 +253,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             if (otpDialog != null && otpDialog.isVisible()) {
                 otpDialog.dismiss();
             }
-
+            setLoading(false);
             showErrorDialog("Bạn đã nhập sai quá 3 lần. Chức năng chuyển tiền bị khóa trong 30 phút.");
         } else {
             editor.putInt(KEY_FAILED_ATTEMPTS, attempts);
@@ -243,9 +275,9 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     }
 
     // --- IMPLEMENT PHONE AUTH CALLBACKS (Giao tiếp với PhoneAuthManager) ---
-
     @Override
     public void onCodeSent() {
+        setLoading(false);
         // OTP đã gửi thành công -> Hiện Dialog nhập
         otpDialog = OtpBottomSheetDialog.newInstance(""); // Truyền sđt nếu muốn hiển thị
         otpDialog.setOtpVerificationListener(this);
@@ -286,97 +318,6 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             phoneAuthManager.resendOtp(senderPhone);
             Toast.makeText(this, "Đã gửi lại mã OTP", Toast.LENGTH_SHORT).show();
         }
-    }
-
-    private void setupMoneyInput() {
-        edtAmount.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                edtAmount.removeTextChangedListener(this);
-
-                try {
-                    String originalString = s.toString();
-                    String cleanString = originalString.replace(".", "");
-
-                    if (!cleanString.isEmpty()) {
-                        double parsed = Double.parseDouble(cleanString);
-                        String formatted = formatMoney(parsed); // Dùng hàm formatMoney đã viết ở bước trước
-
-                        edtAmount.setText(formatted);
-                        edtAmount.setSelection(formatted.length());
-
-                        updateSuggestions(parsed);
-                    } else {
-                        // Nếu xóa hết thì ẩn gợi ý
-                        llSuggestions.setVisibility(View.GONE);
-                    }
-                } catch (NumberFormatException e) {
-                    e.printStackTrace();
-                }
-
-                edtAmount.addTextChangedListener(this);
-            }
-        });
-
-        View.OnClickListener suggestionListener = v -> {
-            TextView tv = (TextView) v;
-            String value = tv.getText().toString();
-            edtAmount.setText(value);
-            edtAmount.setSelection(value.length());
-        };
-
-        tvSuggest1.setOnClickListener(suggestionListener);
-        tvSuggest2.setOnClickListener(suggestionListener);
-        tvSuggest3.setOnClickListener(suggestionListener);
-    }
-
-    private void updateSuggestions(double currentAmount) {
-        if (currentAmount <= 0) {
-            llSuggestions.setVisibility(View.GONE);
-            return;
-        }
-
-        double s1 = currentAmount * 1000;
-        double s2 = currentAmount * 10000;
-        double s3 = currentAmount * 100000;
-
-        if (s1 > MAX_SUGGESTION_LIMIT) {
-            llSuggestions.setVisibility(View.GONE);
-            return;
-        }
-
-        llSuggestions.setVisibility(View.VISIBLE);
-
-        tvSuggest1.setVisibility(View.VISIBLE);
-        tvSuggest2.setVisibility(View.VISIBLE);
-        tvSuggest3.setVisibility(View.VISIBLE);
-
-        tvSuggest1.setText(formatMoney(s1));
-
-        // Kiểm tra s2
-        if (s2 > MAX_SUGGESTION_LIMIT) {
-            tvSuggest2.setVisibility(View.GONE);
-            tvSuggest3.setVisibility(View.GONE);
-        } else {
-            tvSuggest2.setText(formatMoney(s2));
-
-            if (s3 > MAX_SUGGESTION_LIMIT) {
-                tvSuggest3.setVisibility(View.GONE);
-            } else {
-                tvSuggest3.setText(formatMoney(s3));
-            }
-        }
-    }
-
-    private String formatMoney(double amount) {
-        NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
-        return formatter.format(amount);
     }
 
     private void performTransaction() {
@@ -428,59 +369,35 @@ public class TransferDetailsActivity extends AppCompatActivity implements
 
         // 2. Thực hiện Transaction trong Firestore
         db.runTransaction((Transaction.Function<Void>) transaction -> {
-            // ===== PHASE 1: READ ALL DATA FIRST =====
+            // 1. READ ALL DATA FIRST
             // Đọc số dư người gửi
-            DocumentSnapshot senderDoc = transaction.get(senderRef);
-            Double senderBalance = 0.0;
-            boolean senderExists = senderDoc.exists();
-            if (senderExists) {
-                senderBalance = senderDoc.getDouble("balance");
-                if (senderBalance == null) senderBalance = 0.0;
-            }
+            Double senderBalance = transaction.get(senderRef).getDouble("balance");
+            if (senderBalance == null) senderBalance = 0.0;
 
             // Đọc số dư người nhận (nếu là internal transfer)
             Double receiverBalance = 0.0;
-            boolean receiverExists = false;
             if (!isExternalBank && receiverRef != null) {
-                DocumentSnapshot receiverDoc = transaction.get(receiverRef);
-                receiverExists = receiverDoc.exists();
-                if (receiverExists) {
-                    receiverBalance = receiverDoc.getDouble("balance");
-                    if (receiverBalance == null) receiverBalance = 0.0;
-                }
+                receiverBalance = transaction.get(receiverRef).getDouble("balance");
+                if (receiverBalance == null) receiverBalance = 0.0;
             }
 
-            // ===== PHASE 2: VALIDATE =====
+            // 2. VALIDATE
             // Kiểm tra số dư
             if (senderBalance < amount) {
                 throw new FirebaseFirestoreException("Insufficient funds", FirebaseFirestoreException.Code.ABORTED);
             }
 
-            // ===== PHASE 3: WRITE ALL DATA =====
+            // 3. WRITE ALL DATA
             // Tính toán số dư mới
             double newSenderBalance = senderBalance - amount;
             double newReceiverBalance = receiverBalance + amount;
-            
-            // Update hoặc tạo mới số dư người gửi
-            if (senderExists) {
-                transaction.update(senderRef, "balance", newSenderBalance);
-            } else {
-                Map<String, Object> senderAccount = new HashMap<>();
-                senderAccount.put("userId", currentUserId);
-                senderAccount.put("balance", newSenderBalance);
-                transaction.set(senderRef, senderAccount);
-            }
-            
-            // Update hoặc tạo mới số dư người nhận (nếu là internal transfer)
+
+            // Update số dư người gửi
+            transaction.update(senderRef, "balance", newSenderBalance);
+
+            // Update số dư người nhận (nếu là internal transfer)
             if (!isExternalBank && receiverRef != null) {
-                if (receiverExists) {
-                    transaction.update(receiverRef, "balance", newReceiverBalance);
-                } else {
-                    Map<String, Object> receiverAccount = new HashMap<>();
-                    receiverAccount.put("userId", receiverUid);
-                    receiverAccount.put("balance", newReceiverBalance);
-                    transaction.set(receiverRef, receiverAccount);
-                }
+                transaction.update(receiverRef, "balance", newReceiverBalance);
             }
 
             String transId = UUID.randomUUID().toString();
@@ -599,38 +516,155 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     // Lấy thông tin người gửi
     private void fetchSenderInfo() {
         if (currentUserId == null) return;
-        db.collection("users")
-                .document(currentUserId)
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        DocumentSnapshot userDoc = task.getResult();
-                        if (userDoc.exists()) {
-                            // Lấy field "full_name" như trong đoạn mã mẫu
-                            String name = userDoc.getString("full_name");
+        isSenderInfoLoaded = false;
+        setLoading(true);
 
-                            if (name != null && !name.isEmpty()) {
-                                senderName = name;
+        // Dùng Tasks.whenAll để đợi cả 2 việc: Lấy Profile (SĐT) và Lấy Số Dư
+        DocumentReference userRef = db.collection("users").document(currentUserId);
+        DocumentReference accRef = db.collection("accounts").document(currentUserId);
 
-                                if (edtMessage.getText().toString().isEmpty() ||
-                                        edtMessage.getText().toString().equals("Người dùng ẩn danh chuyển tiền")) {
-                                    edtMessage.setText(senderName + " chuyển tiền");
-                                }
-                            }
-                            // 2. Lấy Số điện thoại
-                            String phone = userDoc.getString("phone_number");
-                            if (phone != null && !phone.isEmpty()) {
-                                senderPhone = phone;
-                            } else {
-                                Toast.makeText(this, "Hồ sơ của bạn thiếu số điện thoại để xác thực OTP", Toast.LENGTH_LONG).show();
-                            }
-                        } else {
-                            Toast.makeText(this, "Không tìm thấy hồ sơ người dùng", Toast.LENGTH_SHORT).show();
+        // Chạy song song
+        userRef.get().addOnCompleteListener(taskUser -> {
+            accRef.get().addOnCompleteListener(taskAcc -> {
+                setLoading(false); // Tắt loading
+
+                if (taskUser.isSuccessful() && taskAcc.isSuccessful()) {
+                    // 1. Xử lý User Info
+                    DocumentSnapshot userDoc = taskUser.getResult();
+                    if (userDoc != null && userDoc.exists()) {
+                        senderName = userDoc.getString("full_name");
+                        senderPhone = userDoc.getString("phone_number");
+
+                        // Auto-fill message nếu cần
+                        if (senderName != null && edtMessage.getText().toString().isEmpty()) {
+                            edtMessage.setText(senderName + " chuyển tiền");
                         }
-                    } else {
-                        // Lỗi kết nối server
-                        Toast.makeText(this, "Lỗi kết nối khi lấy thông tin người gửi", Toast.LENGTH_SHORT).show();
                     }
-                });
+
+                    // 2. Xử lý Account Info
+                    DocumentSnapshot accDoc = taskAcc.getResult();
+                    if (accDoc != null && accDoc.exists()) {
+                        Double balance = accDoc.getDouble("balance");
+                        if (balance != null) currentUserBalance = balance;
+                    }
+
+                    // 3. Kiểm tra điều kiện để mở nút Transfer
+                    if (senderPhone != null && !senderPhone.isEmpty()) {
+                        isSenderInfoLoaded = true;
+                        btnTransfer.setEnabled(true);
+                        edtAmount.setEnabled(true);
+                        edtMessage.setEnabled(true);
+                    } else {
+                        Toast.makeText(this, "Lỗi: Tài khoản chưa cập nhật số điện thoại (bắt buộc để nhận OTP).", Toast.LENGTH_LONG).show();
+                    }
+                } else {
+                    Toast.makeText(this, "Không thể lấy thông tin tài khoản. Vui lòng thử lại.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+    }
+
+    private void setupMoneyInput() {
+        edtAmount.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                edtAmount.removeTextChangedListener(this);
+
+                try {
+                    String originalString = s.toString();
+                    String cleanString = originalString.replace(".", "");
+
+                    if (!cleanString.isEmpty()) {
+                        double parsed = Double.parseDouble(cleanString);
+                        String formatted = formatMoney(parsed); // Dùng hàm formatMoney đã viết ở bước trước
+
+                        edtAmount.setText(formatted);
+                        edtAmount.setSelection(formatted.length());
+
+                        updateSuggestions(parsed);
+                    } else {
+                        // Nếu xóa hết thì ẩn gợi ý
+                        llSuggestions.setVisibility(View.GONE);
+                    }
+                } catch (NumberFormatException e) {
+                    e.printStackTrace();
+                }
+
+                edtAmount.addTextChangedListener(this);
+            }
+        });
+
+        View.OnClickListener suggestionListener = v -> {
+            TextView tv = (TextView) v;
+            String value = tv.getText().toString();
+            edtAmount.setText(value);
+            edtAmount.setSelection(value.length());
+        };
+
+        tvSuggest1.setOnClickListener(suggestionListener);
+        tvSuggest2.setOnClickListener(suggestionListener);
+        tvSuggest3.setOnClickListener(suggestionListener);
+    }
+
+    private void updateSuggestions(double currentAmount) {
+        if (currentAmount <= 0) {
+            llSuggestions.setVisibility(View.GONE);
+            return;
+        }
+
+        double s1 = currentAmount * 1000;
+        double s2 = currentAmount * 10000;
+        double s3 = currentAmount * 100000;
+
+        if (s1 > MAX_SUGGESTION_LIMIT) {
+            llSuggestions.setVisibility(View.GONE);
+            return;
+        }
+
+        llSuggestions.setVisibility(View.VISIBLE);
+
+        tvSuggest1.setVisibility(View.VISIBLE);
+        tvSuggest2.setVisibility(View.VISIBLE);
+        tvSuggest3.setVisibility(View.VISIBLE);
+
+        tvSuggest1.setText(formatMoney(s1));
+
+        // Kiểm tra s2
+        if (s2 > MAX_SUGGESTION_LIMIT) {
+            tvSuggest2.setVisibility(View.GONE);
+            tvSuggest3.setVisibility(View.GONE);
+        } else {
+            tvSuggest2.setText(formatMoney(s2));
+
+            if (s3 > MAX_SUGGESTION_LIMIT) {
+                tvSuggest3.setVisibility(View.GONE);
+            } else {
+                tvSuggest3.setText(formatMoney(s3));
+            }
+        }
+    }
+
+    private String formatMoney(double amount) {
+        NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
+        return formatter.format(amount);
+    }
+
+    private void setLoading(boolean isLoading) {
+        if (isLoading) {
+            progressBar.setVisibility(View.VISIBLE);
+            btnTransfer.setEnabled(false);
+            // Làm mờ màn hình
+            findViewById(R.id.transferDetails).setAlpha(0.5f);
+        } else {
+            progressBar.setVisibility(View.GONE);
+            btnTransfer.setEnabled(true);
+            findViewById(R.id.transferDetails).setAlpha(1.0f);
+        }
     }
 }
