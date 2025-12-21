@@ -25,8 +25,12 @@ import androidx.core.app.NotificationCompat;
 import com.example.vibebank.ui.OtpBottomSheetDialog;
 import com.example.vibebank.utils.ElectricBillMockService;
 import com.example.vibebank.utils.FlightTicketMockService;
+import com.example.vibebank.utils.MovieTicketMockService;
 import com.example.vibebank.utils.PhoneAuthManager;
 import com.example.vibebank.utils.SessionManager;
+import com.example.vibebank.utils.WaterBillMockService;
+
+import java.util.ArrayList;
 import com.example.vibebank.utils.WaterBillMockService;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -528,6 +532,26 @@ public class TransferDetailsActivity extends AppCompatActivity implements
                 FlightTicketMockService.bookTicket(flightCode, airline, departure, destination, 
                         departureDate, departureTime, arrivalTime, seatClass, (long) amount, duration,
                         passengerName, passengerID, passengerPhone, passengerEmail);
+            }
+
+            // If this is a movie ticket payment, save booking
+            boolean isMovieTicketPayment = getIntent().getBooleanExtra("isMovieTicketPayment", false);
+            if (isMovieTicketPayment) {
+                String movieTitle = getIntent().getStringExtra("movieTitle");
+                String cinemaName = getIntent().getStringExtra("cinemaName");
+                String date = getIntent().getStringExtra("date");
+                String time = getIntent().getStringExtra("time");
+                String showtimeKey = getIntent().getStringExtra("showtimeKey");
+                ArrayList<String> seats = getIntent().getStringArrayListExtra("seats");
+                String customerName = getIntent().getStringExtra("customerName");
+                String customerPhone = getIntent().getStringExtra("customerPhone");
+                String customerEmail = getIntent().getStringExtra("customerEmail");
+                
+                android.util.Log.d("TransferDetailsActivity", "Movie ticket payment completed: " + movieTitle);
+                
+                // Save booking
+                MovieTicketMockService.bookSeats(showtimeKey, seats, movieTitle, cinemaName,
+                        date, time, (long) amount, customerName, customerPhone, customerEmail);
             }
 
             Intent intent = new Intent(TransferDetailsActivity.this, TransferResultActivity.class);

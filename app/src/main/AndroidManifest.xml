@@ -136,6 +136,16 @@
             android:name=".MyTicketsActivity"
             android:exported="false" />
         <activity
+            android:name=".MyMovieTicketsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MovieTicketActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".MovieTicketResultActivity"
+            android:exported="false" />
+        <activity
             android:name=".MyQRActivity"
             android:exported="false" />
         <activity
