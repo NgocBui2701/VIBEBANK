@@ -27,6 +27,7 @@ import com.google.mlkit.vision.face.FaceDetection;
 import com.google.mlkit.vision.face.FaceDetector;
 import com.google.mlkit.vision.face.FaceDetectorOptions;
 
+import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -38,7 +39,7 @@ public class RegisterFaceAuthActivity extends AppCompatActivity {
     private ExecutorService cameraExecutor;
     private boolean isVerified = false; // Cờ đánh dấu đã xong chưa
     private boolean isFromStaff = false; // Được gọi từ Staff hay không
-    private androidx.camera.core.ImageProxy capturedImageProxy; // Lưu ảnh để save
+    private String savedFacePath = null; // Lưu đường dẫn ảnh đã save
 
     // Xin quyền Camera
     private final ActivityResultLauncher<String> requestPermissionLauncher =
@@ -98,6 +99,12 @@ public class RegisterFaceAuthActivity extends AppCompatActivity {
 
                     if (mediaImage != null) {
                         InputImage image = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
+                        
+                        // Nếu từ staff, save frame để return về
+                        if (isFromStaff && savedFacePath == null) {
+                            savedFacePath = saveImageFrame(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
+                        }
+                        
                         detectFaces(image, imageProxy);
                     } else {
                         imageProxy.close();
@@ -191,23 +198,57 @@ public class RegisterFaceAuthActivity extends AppCompatActivity {
         }, 1000);
     }
     
-    private void saveFaceImageAndReturn() {
+    private String saveImageFrame(android.media.Image mediaImage, int rotationDegrees) {
         try {
-            // Tạo file để lưu ảnh khuôn mặt
+            // Convert Image to Bitmap
+            android.graphics.Bitmap bitmap = mediaImageToBitmap(mediaImage);
+            
+            // Save to file
             File faceFile = new File(getCacheDir(), "staff_face_" + System.currentTimeMillis() + ".jpg");
+            java.io.FileOutputStream fos = new java.io.FileOutputStream(faceFile);
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, fos);
+            fos.close();
             
-            // TODO: Capture và save frame hiện tại
-            // Tạm thời return success để staff biết đã verify
-            Intent resultIntent = new Intent();
-            resultIntent.putExtra("FACE_VERIFIED", true);
-            resultIntent.putExtra("FACE_IMAGE_PATH", faceFile.getAbsolutePath());
-            setResult(RESULT_OK, resultIntent);
-            finish();
-            
+            return faceFile.getAbsolutePath();
         } catch (Exception e) {
-            Toast.makeText(this, "Lỗi lưu ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            finish();
+            Log.e("FaceAuth", "Error saving face image", e);
+            return null;
         }
+    }
+    
+    private android.graphics.Bitmap mediaImageToBitmap(android.media.Image image) {
+        android.media.Image.Plane[] planes = image.getPlanes();
+        java.nio.ByteBuffer yBuffer = planes[0].getBuffer();
+        java.nio.ByteBuffer uBuffer = planes[1].getBuffer();
+        java.nio.ByteBuffer vBuffer = planes[2].getBuffer();
+
+        int ySize = yBuffer.remaining();
+        int uSize = uBuffer.remaining();
+        int vSize = vBuffer.remaining();
+
+        byte[] nv21 = new byte[ySize + uSize + vSize];
+        yBuffer.get(nv21, 0, ySize);
+        vBuffer.get(nv21, ySize, vSize);
+        uBuffer.get(nv21, ySize + vSize, uSize);
+
+        android.graphics.YuvImage yuvImage = new android.graphics.YuvImage(nv21, android.graphics.ImageFormat.NV21, 
+                image.getWidth(), image.getHeight(), null);
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        yuvImage.compressToJpeg(new android.graphics.Rect(0, 0, image.getWidth(), image.getHeight()), 90, out);
+        byte[] imageBytes = out.toByteArray();
+        return android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+    }
+    
+    private void saveFaceImageAndReturn() {
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra("FACE_VERIFIED", true);
+        
+        if (savedFacePath != null) {
+            resultIntent.putExtra("FACE_IMAGE_PATH", savedFacePath);
+        }
+        
+        setResult(RESULT_OK, resultIntent);
+        finish();
     }
 
     @Override
