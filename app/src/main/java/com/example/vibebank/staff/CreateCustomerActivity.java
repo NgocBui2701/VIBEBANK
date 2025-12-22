@@ -119,12 +119,11 @@ public class CreateCustomerActivity extends AppCompatActivity {
             checkCameraPermissionAndOpen();
         });
         
-        // Chụp khuôn mặt - Dùng CustomCameraActivity với camera trước
+        // Chụp khuôn mặt - Dùng RegisterFaceAuthActivity (ML Kit + liveness check)
         cardFace.setOnClickListener(v -> {
-            Intent intent = new Intent(this, CustomCameraActivity.class);
-            intent.putExtra("TYPE", "KHUÔN MẶT");
-            intent.putExtra("USE_FRONT_CAMERA", true); // Camera trước
-            faceCameraLauncher.launch(intent);
+            Intent intent = new Intent(this, RegisterFaceAuthActivity.class);
+            intent.putExtra("FROM_STAFF", true); // Đánh dấu là staff tạo, không tự động chuyển màn
+            faceAuthLauncher.launch(intent);
         });
         
         btnCreate.setOnClickListener(v -> createCustomer());
@@ -158,14 +157,21 @@ public class CreateCustomerActivity extends AppCompatActivity {
             }
     );
     
-    // Launcher cho khuôn mặt (camera trước)
-    private final ActivityResultLauncher<Intent> faceCameraLauncher = registerForActivityResult(
+    // Launcher cho xác thực khuôn mặt (dùng RegisterFaceAuthActivity với ML Kit)
+    private final ActivityResultLauncher<Intent> faceAuthLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    String path = result.getData().getStringExtra("IMAGE_PATH");
-                    if (path != null) {
+                    boolean verified = result.getData().getBooleanExtra("FACE_VERIFIED", false);
+                    String path = result.getData().getStringExtra("FACE_IMAGE_PATH");
+                    
+                    if (verified && path != null) {
                         processFaceImage(path);
+                    } else if (verified) {
+                        // Verified nhưng chưa có ảnh (tạm thời)
+                        tvFaceStatus.setText("✓ Đã xác thực");
+                        tvFaceStatus.setTextColor(getColor(R.color.success));
+                        Toast.makeText(this, "Xác thực khuôn mặt thành công", Toast.LENGTH_SHORT).show();
                     }
                 }
             }
@@ -248,9 +254,15 @@ public class CreateCustomerActivity extends AppCompatActivity {
             return;
         }
         
-        if (frontIdPath == null || backIdPath == null || facePath == null) {
-            Toast.makeText(this, "Vui lòng chụp đầy đủ ảnh CCCD và khuôn mặt", Toast.LENGTH_SHORT).show();
+        if (frontIdPath == null || backIdPath == null) {
+            Toast.makeText(this, "Vui lòng chụp đầy đủ ảnh CCCD (2 mặt)", Toast.LENGTH_SHORT).show();
             return;
+        }
+        
+        // Face là optional (vì RegisterFaceAuthActivity có thể chỉ verify không save ảnh)
+        if (facePath == null) {
+            Toast.makeText(this, "Đang tạo tài khoản mà chưa có ảnh khuôn mặt. Tiếp tục?", Toast.LENGTH_SHORT).show();
+            // Continue anyway
         }
 
         // Generate default password
@@ -274,13 +286,17 @@ public class CreateCustomerActivity extends AppCompatActivity {
             uploadToCloudinary(backIdPath, url2 -> {
                 backIdUrl = url2;
                 
-                // Upload face
-                uploadToCloudinary(facePath, url3 -> {
-                    faceUrl = url3;
-                    
-                    // All images uploaded, create account
+                // Upload face (nếu có)
+                if (facePath != null) {
+                    uploadToCloudinary(facePath, url3 -> {
+                        faceUrl = url3;
+                        createFirebaseAccount(fullName, phone, email, address, idNumber, password);
+                    });
+                } else {
+                    // Không có ảnh khuôn mặt, tạo tài khoản luôn
+                    faceUrl = "";
                     createFirebaseAccount(fullName, phone, email, address, idNumber, password);
-                });
+                }
             });
         });
     }

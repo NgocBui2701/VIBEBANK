@@ -37,6 +37,8 @@ public class RegisterFaceAuthActivity extends AppCompatActivity {
     private TextView txtInstruction;
     private ExecutorService cameraExecutor;
     private boolean isVerified = false; // Cờ đánh dấu đã xong chưa
+    private boolean isFromStaff = false; // Được gọi từ Staff hay không
+    private androidx.camera.core.ImageProxy capturedImageProxy; // Lưu ảnh để save
 
     // Xin quyền Camera
     private final ActivityResultLauncher<String> requestPermissionLauncher =
@@ -57,6 +59,9 @@ public class RegisterFaceAuthActivity extends AppCompatActivity {
         viewFinder = findViewById(R.id.viewFinder);
         txtInstruction = findViewById(R.id.txtInstruction);
         cameraExecutor = Executors.newSingleThreadExecutor();
+        
+        // Kiểm tra xem có được gọi từ Staff không
+        isFromStaff = getIntent().getBooleanExtra("FROM_STAFF", false);
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startCamera();
@@ -172,13 +177,37 @@ public class RegisterFaceAuthActivity extends AppCompatActivity {
             txtInstruction.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_light));
         });
 
-        // Chờ 1s rồi chuyển màn hình
+        // Chờ 1s
         viewFinder.postDelayed(() -> {
-            // Chuyển đến Register4Activity (Xem lại thông tin)
-            Intent intent = new Intent(RegisterFaceAuthActivity.this, Register4Activity.class);
-            startActivity(intent);
-            finish();
+            if (isFromStaff) {
+                // Nếu từ Staff → Chụp ảnh và return về
+                saveFaceImageAndReturn();
+            } else {
+                // Nếu từ Customer registration → Chuyển đến Register4Activity
+                Intent intent = new Intent(RegisterFaceAuthActivity.this, Register4Activity.class);
+                startActivity(intent);
+                finish();
+            }
         }, 1000);
+    }
+    
+    private void saveFaceImageAndReturn() {
+        try {
+            // Tạo file để lưu ảnh khuôn mặt
+            File faceFile = new File(getCacheDir(), "staff_face_" + System.currentTimeMillis() + ".jpg");
+            
+            // TODO: Capture và save frame hiện tại
+            // Tạm thời return success để staff biết đã verify
+            Intent resultIntent = new Intent();
+            resultIntent.putExtra("FACE_VERIFIED", true);
+            resultIntent.putExtra("FACE_IMAGE_PATH", faceFile.getAbsolutePath());
+            setResult(RESULT_OK, resultIntent);
+            finish();
+            
+        } catch (Exception e) {
+            Toast.makeText(this, "Lỗi lưu ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            finish();
+        }
     }
 
     @Override
