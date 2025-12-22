@@ -1,0 +1,269 @@
+Index: app/src/main/res/layout/activity_transfer_details.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<androidx.constraintlayout.widget.ConstraintLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\r\n    xmlns:app=\"http://schemas.android.com/apk/res-auto\"\r\n    android:id=\"@+id/transferDetails\"\r\n    android:layout_width=\"match_parent\"\r\n    android:layout_height=\"match_parent\"\r\n    android:background=\"@color/white\">\r\n\r\n    <!-- Header -->\r\n    <androidx.constraintlayout.widget.ConstraintLayout\r\n        android:id=\"@+id/header\"\r\n        android:layout_width=\"match_parent\"\r\n        android:layout_height=\"wrap_content\"\r\n        android:padding=\"20dp\"\r\n        android:background=\"@color/white\"\r\n        android:elevation=\"10dp\"\r\n        app:layout_constraintTop_toTopOf=\"parent\">\r\n\r\n        <ImageView\r\n            android:id=\"@+id/btnBack\"\r\n            android:layout_width=\"24dp\"\r\n            android:layout_height=\"24dp\"\r\n            android:src=\"@drawable/outline_arrow_back_ios_new_24\"\r\n            android:contentDescription=\"Back\"\r\n            app:layout_constraintStart_toStartOf=\"parent\"\r\n            app:layout_constraintTop_toTopOf=\"parent\"\r\n            app:layout_constraintBottom_toBottomOf=\"parent\" />\r\n\r\n        <TextView\r\n            android:layout_width=\"wrap_content\"\r\n            android:layout_height=\"wrap_content\"\r\n            android:text=\"Chuyển tiền\"\r\n            android:textSize=\"18sp\"\r\n            android:textStyle=\"bold\"\r\n            android:textColor=\"@color/black\"\r\n            app:layout_constraintStart_toStartOf=\"parent\"\r\n            app:layout_constraintEnd_toEndOf=\"parent\"\r\n            app:layout_constraintTop_toTopOf=\"parent\"\r\n            app:layout_constraintBottom_toBottomOf=\"parent\" />\r\n\r\n    </androidx.constraintlayout.widget.ConstraintLayout>\r\n\r\n    <ScrollView\r\n        android:layout_width=\"match_parent\"\r\n        android:layout_height=\"0dp\"\r\n        android:fillViewport=\"true\"\r\n        app:layout_constraintTop_toBottomOf=\"@id/header\"\r\n        app:layout_constraintBottom_toTopOf=\"@id/btnTransfer\">\r\n\r\n        <LinearLayout\r\n            android:layout_width=\"match_parent\"\r\n            android:layout_height=\"wrap_content\"\r\n            android:orientation=\"vertical\"\r\n            android:padding=\"20dp\">\r\n\r\n            <!-- Title -->\r\n            <TextView\r\n                android:layout_width=\"wrap_content\"\r\n                android:layout_height=\"wrap_content\"\r\n                android:text=\"Bạn muốn chuyển khoản tới...\"\r\n                android:layout_marginTop=\"100dp\"\r\n                android:textSize=\"14sp\"\r\n                android:textStyle=\"bold\"\r\n                android:textColor=\"@color/black\"\r\n                android:layout_marginBottom=\"16dp\" />\r\n\r\n            <!-- Recipient Info Card -->\r\n            <LinearLayout\r\n                android:layout_width=\"match_parent\"\r\n                android:layout_height=\"wrap_content\"\r\n                android:orientation=\"horizontal\"\r\n                android:gravity=\"center_vertical\"\r\n                android:background=\"@drawable/card_border\"\r\n                android:padding=\"16dp\"\r\n                android:layout_marginBottom=\"24dp\">\r\n\r\n                <androidx.cardview.widget.CardView\r\n                    android:layout_width=\"40dp\"\r\n                    android:layout_height=\"40dp\"\r\n                    app:cardCornerRadius=\"20dp\"\r\n                    app:cardBackgroundColor=\"#E3F2FD\"\r\n                    app:cardElevation=\"0dp\">\r\n\r\n                    <ImageView\r\n                        android:layout_width=\"24dp\"\r\n                        android:layout_height=\"24dp\"\r\n                        android:layout_gravity=\"center\"\r\n                        android:src=\"@drawable/logo_gradient\"\r\n                        android:scaleType=\"centerCrop\" />\r\n\r\n                </androidx.cardview.widget.CardView>\r\n\r\n                <LinearLayout\r\n                    android:layout_width=\"0dp\"\r\n                    android:layout_height=\"wrap_content\"\r\n                    android:layout_weight=\"1\"\r\n                    android:layout_marginStart=\"12dp\"\r\n                    android:orientation=\"vertical\">\r\n\r\n                    <TextView\r\n                        android:id=\"@+id/txtRecipientBank\"\r\n                        android:layout_width=\"wrap_content\"\r\n                        android:layout_height=\"wrap_content\"\r\n                        android:text=\"VIBEBANK\"\r\n                        android:textSize=\"12sp\"\r\n                        android:textColor=\"#666666\" />\r\n\r\n                    <TextView\r\n                        android:id=\"@+id/txtRecipientAccount\"\r\n                        android:layout_width=\"wrap_content\"\r\n                        android:layout_height=\"wrap_content\"\r\n                        android:text=\"0365349666\"\r\n                        android:textSize=\"16sp\"\r\n                        android:textStyle=\"bold\"\r\n                        android:textColor=\"@color/black\"\r\n                        android:layout_marginTop=\"2dp\" />\r\n\r\n                    <TextView\r\n                        android:id=\"@+id/txtRecipientName\"\r\n                        android:layout_width=\"wrap_content\"\r\n                        android:layout_height=\"wrap_content\"\r\n                        android:text=\"NGUYEN QUOC BAO\"\r\n                        android:textSize=\"14sp\"\r\n                        android:textStyle=\"bold\"\r\n                        android:textColor=\"@color/black\"\r\n                        android:layout_marginTop=\"4dp\" />\r\n\r\n                </LinearLayout>\r\n\r\n            </LinearLayout>\r\n\r\n            <!-- Save Recipient Checkbox -->\r\n            <LinearLayout\r\n                android:layout_width=\"match_parent\"\r\n                android:layout_height=\"wrap_content\"\r\n                android:orientation=\"horizontal\"\r\n                android:gravity=\"center_vertical\"\r\n                android:layout_marginBottom=\"24dp\">\r\n\r\n                <CheckBox\r\n                    android:id=\"@+id/cbSaveRecipient\"\r\n                    android:layout_width=\"24dp\"\r\n                    android:layout_height=\"24dp\"\r\n                    android:button=\"@null\"\r\n                    android:background=\"?android:attr/listChoiceIndicatorMultiple\" />\r\n\r\n                <TextView\r\n                    android:layout_width=\"wrap_content\"\r\n                    android:layout_height=\"wrap_content\"\r\n                    android:layout_marginStart=\"8dp\"\r\n                    android:text=\"Lưu người nhận\"\r\n                    android:textSize=\"14sp\"\r\n                    android:textColor=\"@color/black\" />\r\n\r\n            </LinearLayout>\r\n\r\n\r\n            <androidx.constraintlayout.widget.ConstraintLayout\r\n                android:layout_width=\"match_parent\"\r\n                android:layout_height=\"wrap_content\"\r\n                android:layout_marginBottom=\"20dp\"\r\n                >\r\n                <!-- Amount Input -->\r\n                <TextView\r\n                    android:id=\"@+id/tvVND\"\r\n                    android:layout_width=\"wrap_content\"\r\n                    android:layout_height=\"wrap_content\"\r\n                    android:text=\"VND\"\r\n                    android:textColor=\"@color/black\"\r\n                    android:textSize=\"20sp\"\r\n                    android:textStyle=\"bold\"\r\n                    android:layout_marginTop=\"10dp\"\r\n                    app:layout_constraintStart_toStartOf=\"parent\"\r\n                    app:layout_constraintTop_toTopOf=\"parent\" />\r\n\r\n                <EditText\r\n                    android:id=\"@+id/edtAmount\"\r\n                    android:layout_width=\"wrap_content\"\r\n                    android:layout_height=\"wrap_content\"\r\n                    android:hint=\"Nhập số tiền\"\r\n                    android:textSize=\"20sp\"\r\n                    android:textColor=\"#3F51B5\"\r\n                    android:textColorHint=\"@color/gray_hint\"\r\n                    android:inputType=\"number\"\r\n                    android:textStyle=\"bold\"\r\n                    android:paddingStart=\"16dp\"\r\n                    android:paddingEnd=\"16dp\"\r\n                    android:background=\"@color/white\"\r\n                    app:layout_constraintStart_toEndOf=\"@+id/tvVND\"\r\n                    app:layout_constraintTop_toTopOf=\"@+id/tvVND\"\r\n                    app:layout_constraintBottom_toBottomOf=\"@+id/tvVND\" />\r\n\r\n                <LinearLayout\r\n                    android:id=\"@+id/llSuggestions\"\r\n                    android:layout_width=\"match_parent\"\r\n                    android:layout_height=\"wrap_content\"\r\n                    android:orientation=\"horizontal\"\r\n                    android:layout_marginTop=\"15dp\"\r\n                    android:visibility=\"gone\"\r\n                    android:weightSum=\"3\"\r\n                    app:layout_constraintTop_toBottomOf=\"@+id/tvVND\"\r\n                    app:layout_constraintStart_toStartOf=\"parent\">\r\n                    <TextView\r\n                        android:id=\"@+id/tvSuggest1\"\r\n                        android:layout_width=\"0dp\"\r\n                        android:layout_height=\"wrap_content\"\r\n                        android:layout_weight=\"1\"\r\n                        android:background=\"@drawable/bg_suggestion_chip\"\r\n                        android:gravity=\"center\"\r\n                        android:padding=\"8dp\"\r\n                        android:text=\"100.000\"\r\n                        android:textColor=\"#3F51B5\"\r\n                        android:textSize=\"12sp\"\r\n                        android:textStyle=\"bold\"\r\n                        android:layout_marginEnd=\"4dp\"/>\r\n\r\n                    <TextView\r\n                        android:id=\"@+id/tvSuggest2\"\r\n                        android:layout_width=\"0dp\"\r\n                        android:layout_height=\"wrap_content\"\r\n                        android:layout_weight=\"1\"\r\n                        android:background=\"@drawable/bg_suggestion_chip\"\r\n                        android:gravity=\"center\"\r\n                        android:padding=\"8dp\"\r\n                        android:text=\"1.000.000\"\r\n                        android:textColor=\"#3F51B5\"\r\n                        android:textSize=\"12sp\"\r\n                        android:textStyle=\"bold\"\r\n                        android:layout_marginEnd=\"4dp\"/>\r\n\r\n                    <TextView\r\n                        android:id=\"@+id/tvSuggest3\"\r\n                        android:layout_width=\"0dp\"\r\n                        android:layout_height=\"wrap_content\"\r\n                        android:layout_weight=\"1\"\r\n                        android:background=\"@drawable/bg_suggestion_chip\"\r\n                        android:gravity=\"center\"\r\n                        android:padding=\"8dp\"\r\n                        android:text=\"10.000.000\"\r\n                        android:textColor=\"#3F51B5\"\r\n                        android:textSize=\"12sp\"\r\n                        android:textStyle=\"bold\"/>\r\n\r\n                </LinearLayout>\r\n\r\n                <!-- Message Input -->\r\n                <TextView\r\n                    android:id=\"@+id/tvMessage\"\r\n                    android:layout_width=\"wrap_content\"\r\n                    android:layout_height=\"wrap_content\"\r\n                    android:text=\"Nội dung\"\r\n                    android:textColor=\"@color/black\"\r\n                    android:textSize=\"20sp\"\r\n                    android:textStyle=\"bold\"\r\n                    android:layout_marginTop=\"15dp\"\r\n                    app:layout_constraintStart_toStartOf=\"parent\"\r\n                    app:layout_constraintTop_toBottomOf=\"@+id/llSuggestions\" />\r\n\r\n                <EditText\r\n                    android:id=\"@+id/edtMessage\"\r\n                    android:layout_width=\"match_parent\"\r\n                    android:layout_height=\"wrap_content\"\r\n                    android:background=\"@color/white\"\r\n                    android:hint=\"Nhập nội dung\"\r\n                    android:inputType=\"text\"\r\n                    android:textColor=\"#3F51B5\"\r\n                    android:textStyle=\"bold\"\r\n                    android:textColorHint=\"@color/gray_hint\"\r\n                    android:textSize=\"18sp\"\r\n                    android:layout_marginTop=\"3dp\"\r\n                    app:layout_constraintStart_toStartOf=\"@+id/tvMessage\"\r\n                    app:layout_constraintTop_toBottomOf=\"@+id/tvMessage\"/>\r\n\r\n\r\n            </androidx.constraintlayout.widget.ConstraintLayout>\r\n\r\n        </LinearLayout>\r\n\r\n    </ScrollView>\r\n\r\n    <!-- Transfer Button -->\r\n    <com.google.android.material.button.MaterialButton\r\n        android:id=\"@+id/btnTransfer\"\r\n        android:layout_width=\"0dp\"\r\n        android:layout_height=\"56dp\"\r\n        android:layout_marginStart=\"20dp\"\r\n        android:layout_marginEnd=\"20dp\"\r\n        android:layout_marginBottom=\"20dp\"\r\n        android:text=\"CHUYỂN TIỀN\"\r\n        android:textSize=\"20sp\"\r\n        android:textStyle=\"bold\"\r\n        android:backgroundTint=\"@color/black\"\r\n        android:textColor=\"@color/white\"\r\n        app:cornerRadius=\"8dp\"\r\n        android:enabled=\"false\"\r\n        app:layout_constraintBottom_toBottomOf=\"parent\"\r\n        app:layout_constraintStart_toStartOf=\"parent\"\r\n        app:layout_constraintEnd_toEndOf=\"parent\" />\r\n\r\n</androidx.constraintlayout.widget.ConstraintLayout>\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/res/layout/activity_transfer_details.xml b/app/src/main/res/layout/activity_transfer_details.xml
+--- a/app/src/main/res/layout/activity_transfer_details.xml	(revision 0591d7d5b2eb1495c18a7dc2e4409322bc654a8e)
++++ b/app/src/main/res/layout/activity_transfer_details.xml	(date 1766325712273)
+@@ -297,4 +297,16 @@
+         app:layout_constraintStart_toStartOf="parent"
+         app:layout_constraintEnd_toEndOf="parent" />
+ 
++    <ProgressBar
++        android:id="@+id/progressBar"
++        android:layout_width="wrap_content"
++        android:layout_height="wrap_content"
++        android:visibility="gone"
++        android:indeterminateTint="#000000"
++        android:elevation="10dp"
++        app:layout_constraintTop_toTopOf="parent"
++        app:layout_constraintBottom_toBottomOf="parent"
++        app:layout_constraintStart_toStartOf="parent"
++        app:layout_constraintEnd_toEndOf="parent" />
++
+ </androidx.constraintlayout.widget.ConstraintLayout>
+Index: app/src/main/java/com/example/vibebank/TransferDetailsActivity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.vibebank;\r\n\r\nimport android.app.NotificationChannel;\r\nimport android.app.NotificationManager;\r\nimport android.content.Context;\r\nimport android.content.Intent;\r\nimport android.content.SharedPreferences;\r\nimport android.os.Build;\r\nimport android.os.Bundle;\r\nimport android.text.Editable;\r\nimport android.text.TextWatcher;\r\nimport android.view.View;\r\nimport android.widget.Button;\r\nimport android.widget.CheckBox;\r\nimport android.widget.EditText;\r\nimport android.widget.LinearLayout;\r\nimport android.widget.TextView;\r\nimport android.widget.Toast;\r\n\r\nimport androidx.appcompat.app.AlertDialog;\r\nimport androidx.appcompat.app.AppCompatActivity;\r\nimport androidx.core.app.NotificationCompat;\r\n\r\nimport com.example.vibebank.ui.OtpBottomSheetDialog;\r\nimport com.example.vibebank.utils.PhoneAuthManager;\r\nimport com.example.vibebank.utils.SessionManager;\r\nimport com.google.firebase.Timestamp;\r\nimport com.google.firebase.auth.FirebaseAuth;\r\nimport com.google.firebase.firestore.DocumentReference;\r\nimport com.google.firebase.firestore.DocumentSnapshot;\r\nimport com.google.firebase.firestore.FirebaseFirestore;\r\nimport com.google.firebase.firestore.FirebaseFirestoreException;\r\nimport com.google.firebase.firestore.QuerySnapshot;\r\nimport com.google.firebase.firestore.Transaction;\r\n\r\nimport java.text.NumberFormat;\r\nimport java.util.Date;\r\nimport java.util.HashMap;\r\nimport java.util.Locale;\r\nimport java.util.Map;\r\nimport java.util.UUID;\r\n\r\npublic class TransferDetailsActivity extends AppCompatActivity implements\r\n        PhoneAuthManager.PhoneAuthCallback,\r\n        OtpBottomSheetDialog.OtpVerificationListener {\r\n\r\n    private TextView tvReceiverName, tvReceiverAccount, tvReceiverBank;\r\n    private EditText edtAmount, edtMessage;\r\n    private CheckBox cbSaveContact;\r\n    private Button btnTransfer;\r\n    private FirebaseFirestore db;\r\n    private String currentUserId = null;\r\n    private String senderName = \"Người dùng ẩn danh\";\r\n    private String senderPhone = \"\";\r\n    private String receiverUid, receiverAccountNumber, receiverName;\r\n    private LinearLayout llSuggestions;\r\n    private static final double MAX_SUGGESTION_LIMIT = 999999999;\r\n    private TextView tvSuggest1, tvSuggest2, tvSuggest3;\r\n\r\n    // Các biến cho OTP và Lockout\r\n    private PhoneAuthManager phoneAuthManager;\r\n    private OtpBottomSheetDialog otpDialog;\r\n    private SessionManager sessionManager;\r\n    private static final String PREFS_SECURITY = \"SecurityPrefs\";\r\n    private static final String KEY_FAILED_ATTEMPTS = \"failed_attempts\";\r\n    private static final String KEY_LOCKOUT_TIME = \"lockout_timestamp\";\r\n    private static final int MAX_FAILED_ATTEMPTS = 3;\r\n    private static final long LOCKOUT_DURATION = 30 * 60 * 1000; // 30 phút\r\n\r\n    @Override\r\n    protected void onCreate(Bundle savedInstanceState) {\r\n        super.onCreate(savedInstanceState);\r\n        setContentView(R.layout.activity_transfer_details);\r\n\r\n        db = FirebaseFirestore.getInstance();\r\n        phoneAuthManager = new PhoneAuthManager(this, this);\r\n        sessionManager = new SessionManager(this);\r\n\r\n        // Lấy ID người dùng hiện tại\r\n        // 1. Lấy từ Firebase Auth\r\n        if (FirebaseAuth.getInstance().getCurrentUser() != null) {\r\n            currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();\r\n        }\r\n\r\n        // 2. Nếu null, lấy từ SessionManager (đồng bộ với LoginActivity)\r\n        if (currentUserId == null && sessionManager.isLoggedIn()) {\r\n            currentUserId = sessionManager.getCurrentUserId();\r\n        }\r\n\r\n        // 3. Lấy từ SharedPreferences \"UserPrefs\"\r\n        if (currentUserId == null) {\r\n            SharedPreferences prefs = getSharedPreferences(\"UserPrefs\", MODE_PRIVATE);\r\n            currentUserId = prefs.getString(\"current_user_id\", null);\r\n        }\r\n\r\n        // Kiểm tra kết quả cuối cùng\r\n        if (currentUserId == null) {\r\n            Toast.makeText(this, \"Lỗi phiên đăng nhập. Vui lòng đăng nhập lại.\", Toast.LENGTH_LONG).show();\r\n            // Tùy chọn: Chuyển về màn hình Login\r\n            // Intent intent = new Intent(this, LoginActivity.class);\r\n            // intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);\r\n            // startActivity(intent);\r\n            finish();\r\n            return;\r\n        }\r\n\r\n        if (currentUserId != null) {\r\n            fetchSenderInfo();\r\n        }\r\n\r\n        // Nhận dữ liệu\r\n        receiverAccountNumber = getIntent().getStringExtra(\"receiverAccountNumber\");\r\n        receiverName = getIntent().getStringExtra(\"receiverName\");\r\n        receiverUid = getIntent().getStringExtra(\"receiverUserId\");\r\n        String bankName = getIntent().getStringExtra(\"bankName\");\r\n\r\n        // Validate - only accountNumber is required\r\n        if (receiverAccountNumber == null || receiverAccountNumber.isEmpty()) {\r\n            Toast.makeText(this, \"Lỗi: Không tìm thấy số tài khoản người nhận\", Toast.LENGTH_SHORT).show();\r\n            finish();\r\n            return;\r\n        }\r\n        \r\n        // If receiverName is null, use account number as fallback\r\n        if (receiverName == null || receiverName.isEmpty()) {\r\n            receiverName = \"Tài khoản \" + receiverAccountNumber;\r\n        }\r\n\r\n        // Ánh xạ\r\n        tvReceiverBank = findViewById(R.id.txtRecipientBank);\r\n        tvReceiverName = findViewById(R.id.txtRecipientName);\r\n        tvReceiverAccount = findViewById(R.id.txtRecipientAccount);\r\n        edtAmount = findViewById(R.id.edtAmount);\r\n        edtMessage = findViewById(R.id.edtMessage);\r\n        cbSaveContact = findViewById(R.id.cbSaveRecipient);\r\n        btnTransfer = findViewById(R.id.btnTransfer);\r\n        View btnBack = findViewById(R.id.btnBack);\r\n\r\n        llSuggestions = findViewById(R.id.llSuggestions);\r\n        tvSuggest1 = findViewById(R.id.tvSuggest1);\r\n        tvSuggest2 = findViewById(R.id.tvSuggest2);\r\n        tvSuggest3 = findViewById(R.id.tvSuggest3);\r\n\r\n        // Setup UI\r\n        tvReceiverBank.setText(bankName != null ? bankName : \"VibeBank\");\r\n        tvReceiverAccount.setText(receiverAccountNumber);\r\n        tvReceiverName.setText(receiverName);\r\n\r\n        // Kiểm tra người nhận đã tồn tại trong danh sách đã lưu\r\n        SharedPreferences prefs = getSharedPreferences(\"SavedRecipients\", MODE_PRIVATE);\r\n        if (prefs.contains(receiverAccountNumber)) {\r\n            cbSaveContact.setChecked(true);\r\n            cbSaveContact.setEnabled(false);\r\n        }\r\n\r\n        setupMoneyInput();\r\n\r\n        btnBack.setOnClickListener(v -> finish());\r\n\r\n        // Mở nút chuyển tiền khi nhập đủ\r\n        btnTransfer.setEnabled(true);\r\n        btnTransfer.setOnClickListener(v -> preCheckTransfer());\r\n    }\r\n\r\n    private void preCheckTransfer() {\r\n        // Kiểm tra đầu vào cơ bản\r\n        String amountStr = edtAmount.getText().toString().replace(\".\", \"\");\r\n        if (amountStr.isEmpty()) {\r\n            edtAmount.setError(\"Vui lòng nhập số tiền\");\r\n            return;\r\n        }\r\n        double amount = Double.parseDouble(amountStr);\r\n        if (amount <= 0) {\r\n            edtAmount.setError(\"Số tiền phải lớn hơn 0\");\r\n            return;\r\n        }\r\n\r\n        // KIỂM TRA KHÓA (LOCKOUT)\r\n        if (isLockedOut()) {\r\n            long remainingTime = getRemainingLockoutTime();\r\n            long minutes = remainingTime / 60000;\r\n            showErrorDialog(\"Tài khoản bị tạm khóa chức năng chuyển tiền do nhập sai OTP quá 3 lần. Vui lòng thử lại sau \" + (minutes + 1) + \" phút.\");\r\n            return;\r\n        }\r\n\r\n        // Nếu có SĐT thì gửi OTP\r\n        if (senderPhone != null && !senderPhone.isEmpty()) {\r\n            // Show loading\r\n            Toast.makeText(this, \"Đang gửi mã OTP...\", Toast.LENGTH_SHORT).show();\r\n            phoneAuthManager.sendOtp(senderPhone);\r\n        } else {\r\n            showErrorDialog(\"Không tìm thấy số điện thoại xác thực. Vui lòng cập nhật hồ sơ.\");\r\n        }\r\n    }\r\n\r\n    private boolean isLockedOut() {\r\n        SharedPreferences prefs = getSharedPreferences(PREFS_SECURITY, MODE_PRIVATE);\r\n        long lockoutTime = prefs.getLong(KEY_LOCKOUT_TIME, 0);\r\n        return System.currentTimeMillis() < lockoutTime;\r\n    }\r\n\r\n    private long getRemainingLockoutTime() {\r\n        SharedPreferences prefs = getSharedPreferences(PREFS_SECURITY, MODE_PRIVATE);\r\n        long lockoutTime = prefs.getLong(KEY_LOCKOUT_TIME, 0);\r\n        return Math.max(0, lockoutTime - System.currentTimeMillis());\r\n    }\r\n\r\n    private void handleFailedAttempt() {\r\n        SharedPreferences prefs = getSharedPreferences(PREFS_SECURITY, MODE_PRIVATE);\r\n        int attempts = prefs.getInt(KEY_FAILED_ATTEMPTS, 0) + 1;\r\n        SharedPreferences.Editor editor = prefs.edit();\r\n\r\n        if (attempts >= MAX_FAILED_ATTEMPTS) {\r\n            // Khóa 30 phút\r\n            long unlockTime = System.currentTimeMillis() + LOCKOUT_DURATION;\r\n            editor.putLong(KEY_LOCKOUT_TIME, unlockTime);\r\n            editor.putInt(KEY_FAILED_ATTEMPTS, 0); // Reset số lần sai sau khi đã khóa\r\n            editor.apply();\r\n\r\n            // Đóng dialog OTP nếu đang mở\r\n            if (otpDialog != null && otpDialog.isVisible()) {\r\n                otpDialog.dismiss();\r\n            }\r\n\r\n            showErrorDialog(\"Bạn đã nhập sai quá 3 lần. Chức năng chuyển tiền bị khóa trong 30 phút.\");\r\n        } else {\r\n            editor.putInt(KEY_FAILED_ATTEMPTS, attempts);\r\n            editor.apply();\r\n\r\n            // Thông báo số lần còn lại\r\n            int remaining = MAX_FAILED_ATTEMPTS - attempts;\r\n            new AlertDialog.Builder(this)\r\n                    .setTitle(\"Mã OTP không đúng\")\r\n                    .setMessage(\"Bạn còn \" + remaining + \" lần thử.\")\r\n                    .setPositiveButton(\"Thử lại\", null)\r\n                    .show();\r\n        }\r\n    }\r\n\r\n    private void resetFailedAttempts() {\r\n        SharedPreferences prefs = getSharedPreferences(PREFS_SECURITY, MODE_PRIVATE);\r\n        prefs.edit().putInt(KEY_FAILED_ATTEMPTS, 0).remove(KEY_LOCKOUT_TIME).apply();\r\n    }\r\n\r\n    // --- IMPLEMENT PHONE AUTH CALLBACKS (Giao tiếp với PhoneAuthManager) ---\r\n\r\n    @Override\r\n    public void onCodeSent() {\r\n        // OTP đã gửi thành công -> Hiện Dialog nhập\r\n        otpDialog = OtpBottomSheetDialog.newInstance(\"\"); // Truyền sđt nếu muốn hiển thị\r\n        otpDialog.setOtpVerificationListener(this);\r\n        otpDialog.show(getSupportFragmentManager(), \"OtpTransferDialog\");\r\n    }\r\n\r\n    @Override\r\n    public void onVerificationSuccess() {\r\n        // Firebase xác thực thành công OTP\r\n        if (otpDialog != null && otpDialog.isVisible()) {\r\n            otpDialog.dismiss();\r\n        }\r\n\r\n        Toast.makeText(this, \"Xác thực thành công!\", Toast.LENGTH_SHORT).show();\r\n        resetFailedAttempts(); // Reset bộ đếm lỗi\r\n\r\n        // TIẾN HÀNH CHUYỂN TIỀN THẬT\r\n        performTransaction();\r\n    }\r\n\r\n    @Override\r\n    public void onVerificationFailed(String error) {\r\n        // Lỗi từ Firebase (Code sai, hết hạn...)\r\n        handleFailedAttempt();\r\n    }\r\n\r\n    // --- IMPLEMENT OTP DIALOG LISTENERS (Giao tiếp với BottomSheet) ---\r\n\r\n    @Override\r\n    public void onOtpVerified(String otpCode) {\r\n        // Người dùng bấm nút Xác nhận trên Dialog\r\n        phoneAuthManager.verifyCode(otpCode);\r\n    }\r\n\r\n    @Override\r\n    public void onResendOtp() {\r\n        if (senderPhone != null) {\r\n            phoneAuthManager.resendOtp(senderPhone);\r\n            Toast.makeText(this, \"Đã gửi lại mã OTP\", Toast.LENGTH_SHORT).show();\r\n        }\r\n    }\r\n\r\n    private void setupMoneyInput() {\r\n        edtAmount.addTextChangedListener(new TextWatcher() {\r\n            @Override\r\n            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}\r\n\r\n            @Override\r\n            public void onTextChanged(CharSequence s, int start, int before, int count) {}\r\n\r\n            @Override\r\n            public void afterTextChanged(Editable s) {\r\n                edtAmount.removeTextChangedListener(this);\r\n\r\n                try {\r\n                    String originalString = s.toString();\r\n                    String cleanString = originalString.replace(\".\", \"\");\r\n\r\n                    if (!cleanString.isEmpty()) {\r\n                        double parsed = Double.parseDouble(cleanString);\r\n                        String formatted = formatMoney(parsed); // Dùng hàm formatMoney đã viết ở bước trước\r\n\r\n                        edtAmount.setText(formatted);\r\n                        edtAmount.setSelection(formatted.length());\r\n\r\n                        updateSuggestions(parsed);\r\n                    } else {\r\n                        // Nếu xóa hết thì ẩn gợi ý\r\n                        llSuggestions.setVisibility(View.GONE);\r\n                    }\r\n                } catch (NumberFormatException e) {\r\n                    e.printStackTrace();\r\n                }\r\n\r\n                edtAmount.addTextChangedListener(this);\r\n            }\r\n        });\r\n\r\n        View.OnClickListener suggestionListener = v -> {\r\n            TextView tv = (TextView) v;\r\n            String value = tv.getText().toString();\r\n            edtAmount.setText(value);\r\n            edtAmount.setSelection(value.length());\r\n        };\r\n\r\n        tvSuggest1.setOnClickListener(suggestionListener);\r\n        tvSuggest2.setOnClickListener(suggestionListener);\r\n        tvSuggest3.setOnClickListener(suggestionListener);\r\n    }\r\n\r\n    private void updateSuggestions(double currentAmount) {\r\n        if (currentAmount <= 0) {\r\n            llSuggestions.setVisibility(View.GONE);\r\n            return;\r\n        }\r\n\r\n        double s1 = currentAmount * 1000;\r\n        double s2 = currentAmount * 10000;\r\n        double s3 = currentAmount * 100000;\r\n\r\n        if (s1 > MAX_SUGGESTION_LIMIT) {\r\n            llSuggestions.setVisibility(View.GONE);\r\n            return;\r\n        }\r\n\r\n        llSuggestions.setVisibility(View.VISIBLE);\r\n\r\n        tvSuggest1.setVisibility(View.VISIBLE);\r\n        tvSuggest2.setVisibility(View.VISIBLE);\r\n        tvSuggest3.setVisibility(View.VISIBLE);\r\n\r\n        tvSuggest1.setText(formatMoney(s1));\r\n\r\n        // Kiểm tra s2\r\n        if (s2 > MAX_SUGGESTION_LIMIT) {\r\n            tvSuggest2.setVisibility(View.GONE);\r\n            tvSuggest3.setVisibility(View.GONE);\r\n        } else {\r\n            tvSuggest2.setText(formatMoney(s2));\r\n\r\n            if (s3 > MAX_SUGGESTION_LIMIT) {\r\n                tvSuggest3.setVisibility(View.GONE);\r\n            } else {\r\n                tvSuggest3.setText(formatMoney(s3));\r\n            }\r\n        }\r\n    }\r\n\r\n    private String formatMoney(double amount) {\r\n        NumberFormat formatter = NumberFormat.getInstance(new Locale(\"vi\", \"VN\"));\r\n        return formatter.format(amount);\r\n    }\r\n\r\n    private void performTransaction() {\r\n\r\n        if (currentUserId == null) {\r\n            Toast.makeText(this, \"Lỗi: Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.\", Toast.LENGTH_LONG).show();\r\n            return;\r\n        }\r\n\r\n        if (receiverUid == null || receiverUid.isEmpty()) {\r\n            Toast.makeText(this, \"Lỗi: Không tìm thấy ID người nhận. Vui lòng thử lại.\", Toast.LENGTH_LONG).show();\r\n            return;\r\n        }\r\n\r\n        String amountStr = edtAmount.getText().toString();\r\n        String message = edtMessage.getText().toString();\r\n\r\n        if (amountStr.isEmpty()) {\r\n            edtAmount.setError(\"Vui lòng nhập số tiền\");\r\n            return;\r\n        }\r\n\r\n        String cleanAmountStr = amountStr.replace(\".\", \"\");\r\n\r\n        double amount = Double.parseDouble(cleanAmountStr);\r\n\r\n        String formattedAmount = formatMoney(amount);\r\n\r\n        // Kiểm tra số tiền tối thiểu\r\n        if (amount <= 0) {\r\n            edtAmount.setError(\"Số tiền phải lớn hơn 0\");\r\n            return;\r\n        }\r\n\r\n        // 1. Lưu người nhận nếu chọn\r\n        if (cbSaveContact != null && cbSaveContact.isChecked()) {\r\n            SharedPreferences prefs = getSharedPreferences(\"SavedRecipients\", MODE_PRIVATE);\r\n            SharedPreferences.Editor editor = prefs.edit();\r\n\r\n            String valueToSave = receiverName + \";\" + receiverUid;\r\n\r\n            editor.putString(receiverAccountNumber, valueToSave);\r\n            editor.apply();\r\n        }\r\n\r\n        final DocumentReference senderRef = db.collection(\"accounts\").document(currentUserId);\r\n        final boolean isExternalBank = \"EXTERNAL_BANK\".equals(receiverUid);\r\n        final DocumentReference receiverRef = isExternalBank ? null : db.collection(\"accounts\").document(receiverUid);\r\n\r\n        // 2. Thực hiện Transaction trong Firestore\r\n        db.runTransaction((Transaction.Function<Void>) transaction -> {\r\n            // ===== PHASE 1: READ ALL DATA FIRST =====\r\n            // Đọc số dư người gửi\r\n            Double senderBalance = transaction.get(senderRef).getDouble(\"balance\");\r\n            if (senderBalance == null) senderBalance = 0.0;\r\n\r\n            // Đọc số dư người nhận (nếu là internal transfer)\r\n            Double receiverBalance = 0.0;\r\n            if (!isExternalBank && receiverRef != null) {\r\n                receiverBalance = transaction.get(receiverRef).getDouble(\"balance\");\r\n                if (receiverBalance == null) receiverBalance = 0.0;\r\n            }\r\n\r\n            // ===== PHASE 2: VALIDATE =====\r\n            // Kiểm tra số dư\r\n            if (senderBalance < amount) {\r\n                throw new FirebaseFirestoreException(\"Insufficient funds\", FirebaseFirestoreException.Code.ABORTED);\r\n            }\r\n\r\n            // ===== PHASE 3: WRITE ALL DATA =====\r\n            // Tính toán số dư mới\r\n            double newSenderBalance = senderBalance - amount;\r\n            double newReceiverBalance = receiverBalance + amount;\r\n            \r\n            // Update số dư người gửi\r\n            transaction.update(senderRef, \"balance\", newSenderBalance);\r\n            \r\n            // Update số dư người nhận (nếu là internal transfer)\r\n            if (!isExternalBank && receiverRef != null) {\r\n                transaction.update(receiverRef, \"balance\", newReceiverBalance);\r\n            }\r\n\r\n            String transId = UUID.randomUUID().toString();\r\n\r\n            // Ghi lịch sử cho Người Gửi\r\n            Map<String, Object> senderLog = new HashMap<>();\r\n            senderLog.put(\"userId\", currentUserId); // Người sở hữu log này\r\n            senderLog.put(\"type\", \"SENT\");\r\n            senderLog.put(\"amount\", amount);\r\n            senderLog.put(\"content\", message);\r\n            senderLog.put(\"timestamp\", Timestamp.now());\r\n            senderLog.put(\"relatedAccountName\", receiverName);\r\n            senderLog.put(\"relatedAccountNumber\", receiverAccountNumber);\r\n            senderLog.put(\"transactionId\", transId);\r\n\r\n            DocumentReference senderLogRef = senderRef.collection(\"transactions\").document(transId);\r\n            transaction.set(senderLogRef, senderLog);\r\n\r\n            // Chỉ ghi lịch sử cho người nhận nếu là internal transfer\r\n            if (!isExternalBank && receiverRef != null) {\r\n                Map<String, Object> receiverLog = new HashMap<>();\r\n                receiverLog.put(\"userId\", receiverUid);\r\n                receiverLog.put(\"type\", \"RECEIVED\");\r\n                receiverLog.put(\"amount\", amount);\r\n                receiverLog.put(\"content\", message);\r\n                receiverLog.put(\"timestamp\", Timestamp.now());\r\n                receiverLog.put(\"relatedAccountName\", senderName);\r\n                receiverLog.put(\"transactionId\", transId);\r\n\r\n                DocumentReference receiverLogRef = receiverRef.collection(\"transactions\").document(transId);\r\n                transaction.set(receiverLogRef, receiverLog);\r\n            }\r\n\r\n            return null;\r\n        }).addOnSuccessListener(aVoid -> {\r\n            // Thành công\r\n            // Thông báo người gửi qua notification bar\r\n            sendNotification(\"Biến động số dư\", \"Tài khoản -\" + formattedAmount + \" VND. Nội dung: \" + message);\r\n\r\n            // Lưu thông báo người gửi vào Firestore\r\n            Map<String, Object> senderNotification = new HashMap<>();\r\n            senderNotification.put(\"userId\", currentUserId);\r\n            senderNotification.put(\"title\", \"Biến động số dư\");\r\n            senderNotification.put(\"message\", \"Chuyển tiền -\" + formattedAmount + \" VND đến \" + receiverName + \" (\" + receiverAccountNumber + \"). Nội dung: \" + message);\r\n            senderNotification.put(\"timestamp\", new Date());\r\n            senderNotification.put(\"isRead\", false);\r\n\r\n            db.collection(\"notifications\")\r\n                    .add(senderNotification)\r\n                    .addOnFailureListener(e -> {\r\n                        // Log lỗi nhưng không chặn luồng\r\n                    });\r\n\r\n            // Chỉ thông báo người nhận nếu là internal transfer\r\n            if (!isExternalBank) {\r\n                Map<String, Object> receiverNotification = new HashMap<>();\r\n                receiverNotification.put(\"userId\", receiverUid);\r\n                receiverNotification.put(\"title\", \"Biến động số dư\");\r\n                receiverNotification.put(\"message\", \"Nhận tiền +\" + formattedAmount + \" VND từ \" + senderName + \". Nội dung: \" + message);\r\n                receiverNotification.put(\"timestamp\", new Date());\r\n                receiverNotification.put(\"isRead\", false);\r\n\r\n                db.collection(\"notifications\")\r\n                        .add(receiverNotification)\r\n                        .addOnFailureListener(e -> {\r\n                            // Log lỗi nếu cần, nhưng không chặn luồng chính vì tiền đã chuyển xong rồi\r\n                        });\r\n            }\r\n\r\n            Intent intent = new Intent(TransferDetailsActivity.this, TransferResultActivity.class);\r\n            intent.putExtra(\"amount\", amount);\r\n            intent.putExtra(\"receiverName\", receiverName);\r\n            intent.putExtra(\"receiverAccount\", receiverAccountNumber);\r\n            intent.putExtra(\"content\", message);\r\n            intent.putExtra(\"refId\", UUID.randomUUID().toString().substring(0, 10).toUpperCase());\r\n            startActivity(intent);\r\n            finish();\r\n\r\n        }).addOnFailureListener(e -> {\r\n            if (e.getMessage() != null && e.getMessage().contains(\"Insufficient funds\")) {\r\n                showErrorDialog(\"Số dư tài khoản không đủ để thực hiện thao tác\");\r\n            } else {\r\n                showErrorDialog(\"Giao dịch thất bại: \" + e.getMessage());\r\n            }\r\n        });\r\n    }\r\n\r\n    private void showErrorDialog(String msg) {\r\n        new AlertDialog.Builder(this)\r\n                .setTitle(\"Thông báo\")\r\n                .setMessage(msg)\r\n                .setPositiveButton(\"Đóng\", null)\r\n                .show();\r\n    }\r\n\r\n    private void sendNotification(String title, String message) {\r\n        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);\r\n        String channelId = \"balance_channel\";\r\n\r\n        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {\r\n            NotificationChannel channel = new NotificationChannel(channelId, \"Balance Updates\", NotificationManager.IMPORTANCE_HIGH);\r\n            notificationManager.createNotificationChannel(channel);\r\n        }\r\n\r\n        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId)\r\n                .setSmallIcon(android.R.drawable.ic_dialog_info)\r\n                .setContentTitle(title)\r\n                .setContentText(message)\r\n                .setPriority(NotificationCompat.PRIORITY_HIGH)\r\n                .setAutoCancel(true);\r\n\r\n        int notificationId = (int) System.currentTimeMillis();\r\n        notificationManager.notify(notificationId, builder.build());\r\n    }\r\n\r\n    // Lấy thông tin người gửi\r\n    private void fetchSenderInfo() {\r\n        if (currentUserId == null) return;\r\n        db.collection(\"users\")\r\n                .document(currentUserId)\r\n                .get()\r\n                .addOnCompleteListener(task -> {\r\n                    if (task.isSuccessful()) {\r\n                        DocumentSnapshot userDoc = task.getResult();\r\n                        if (userDoc.exists()) {\r\n                            // Lấy field \"full_name\" như trong đoạn mã mẫu\r\n                            String name = userDoc.getString(\"full_name\");\r\n\r\n                            if (name != null && !name.isEmpty()) {\r\n                                senderName = name;\r\n\r\n                                if (edtMessage.getText().toString().isEmpty() ||\r\n                                        edtMessage.getText().toString().equals(\"Người dùng ẩn danh chuyển tiền\")) {\r\n                                    edtMessage.setText(senderName + \" chuyển tiền\");\r\n                                }\r\n                            }\r\n                            // 2. Lấy Số điện thoại\r\n                            String phone = userDoc.getString(\"phone_number\");\r\n                            if (phone != null && !phone.isEmpty()) {\r\n                                senderPhone = phone;\r\n                            } else {\r\n                                Toast.makeText(this, \"Hồ sơ của bạn thiếu số điện thoại để xác thực OTP\", Toast.LENGTH_LONG).show();\r\n                            }\r\n                        } else {\r\n                            Toast.makeText(this, \"Không tìm thấy hồ sơ người dùng\", Toast.LENGTH_SHORT).show();\r\n                        }\r\n                    } else {\r\n                        // Lỗi kết nối server\r\n                        Toast.makeText(this, \"Lỗi kết nối khi lấy thông tin người gửi\", Toast.LENGTH_SHORT).show();\r\n                    }\r\n                });\r\n    }\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/vibebank/TransferDetailsActivity.java b/app/src/main/java/com/example/vibebank/TransferDetailsActivity.java
+--- a/app/src/main/java/com/example/vibebank/TransferDetailsActivity.java	(revision 0591d7d5b2eb1495c18a7dc2e4409322bc654a8e)
++++ b/app/src/main/java/com/example/vibebank/TransferDetailsActivity.java	(date 1766328919269)
+@@ -14,6 +14,7 @@
+ import android.widget.CheckBox;
+ import android.widget.EditText;
+ import android.widget.LinearLayout;
++import android.widget.ProgressBar;
+ import android.widget.TextView;
+ import android.widget.Toast;
+ 
+@@ -55,6 +56,7 @@
+     private String receiverUid, receiverAccountNumber, receiverName;
+     private LinearLayout llSuggestions;
+     private static final double MAX_SUGGESTION_LIMIT = 999999999;
++    private static final double AMOUNT_TRANSACTION_LIMIT = 500000000;
+     private TextView tvSuggest1, tvSuggest2, tvSuggest3;
+ 
+     // Các biến cho OTP và Lockout
+@@ -66,6 +68,8 @@
+     private static final String KEY_LOCKOUT_TIME = "lockout_timestamp";
+     private static final int MAX_FAILED_ATTEMPTS = 3;
+     private static final long LOCKOUT_DURATION = 30 * 60 * 1000; // 30 phút
++    private ProgressBar progressBar;
++    private double currentUserBalance = 0;
+ 
+     @Override
+     protected void onCreate(Bundle savedInstanceState) {
+@@ -76,23 +80,39 @@
+         phoneAuthManager = new PhoneAuthManager(this, this);
+         sessionManager = new SessionManager(this);
+ 
++        // Ánh xạ
++        tvReceiverBank = findViewById(R.id.txtRecipientBank);
++        tvReceiverName = findViewById(R.id.txtRecipientName);
++        tvReceiverAccount = findViewById(R.id.txtRecipientAccount);
++        edtAmount = findViewById(R.id.edtAmount);
++        edtMessage = findViewById(R.id.edtMessage);
++        cbSaveContact = findViewById(R.id.cbSaveRecipient);
++        btnTransfer = findViewById(R.id.btnTransfer);
++        View btnBack = findViewById(R.id.btnBack);
++        progressBar = findViewById(R.id.progressBar);
++
++        llSuggestions = findViewById(R.id.llSuggestions);
++        tvSuggest1 = findViewById(R.id.tvSuggest1);
++        tvSuggest2 = findViewById(R.id.tvSuggest2);
++        tvSuggest3 = findViewById(R.id.tvSuggest3);
++
+         // Lấy ID người dùng hiện tại
+-        // 1. Lấy từ Firebase Auth
+-        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+-            currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+-        }
+-
+-        // 2. Nếu null, lấy từ SessionManager (đồng bộ với LoginActivity)
+-        if (currentUserId == null && sessionManager.isLoggedIn()) {
+-            currentUserId = sessionManager.getCurrentUserId();
++        // Lấy ID người dùng từ SessionManager
++        currentUserId = sessionManager.getCurrentUserId();
++
++        // Lấy từ Firebase Auth
++        if (currentUserId == null && FirebaseAuth.getInstance().getCurrentUser() != null) {
++            currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+         }
+ 
+-        // 3. Lấy từ SharedPreferences "UserPrefs"
++        //  Lấy ID người dùng từ SharedPreferences
+         if (currentUserId == null) {
+             SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+             currentUserId = prefs.getString("current_user_id", null);
+         }
+ 
++        android.util.Log.d("TransferDetails", "Current User ID: " + currentUserId);
++
+         // Kiểm tra kết quả cuối cùng
+         if (currentUserId == null) {
+             Toast.makeText(this, "Lỗi phiên đăng nhập. Vui lòng đăng nhập lại.", Toast.LENGTH_LONG).show();
+@@ -126,21 +146,6 @@
+             receiverName = "Tài khoản " + receiverAccountNumber;
+         }
+ 
+-        // Ánh xạ
+-        tvReceiverBank = findViewById(R.id.txtRecipientBank);
+-        tvReceiverName = findViewById(R.id.txtRecipientName);
+-        tvReceiverAccount = findViewById(R.id.txtRecipientAccount);
+-        edtAmount = findViewById(R.id.edtAmount);
+-        edtMessage = findViewById(R.id.edtMessage);
+-        cbSaveContact = findViewById(R.id.cbSaveRecipient);
+-        btnTransfer = findViewById(R.id.btnTransfer);
+-        View btnBack = findViewById(R.id.btnBack);
+-
+-        llSuggestions = findViewById(R.id.llSuggestions);
+-        tvSuggest1 = findViewById(R.id.tvSuggest1);
+-        tvSuggest2 = findViewById(R.id.tvSuggest2);
+-        tvSuggest3 = findViewById(R.id.tvSuggest3);
+-
+         // Setup UI
+         tvReceiverBank.setText(bankName != null ? bankName : "VibeBank");
+         tvReceiverAccount.setText(receiverAccountNumber);
+@@ -165,15 +170,29 @@
+     private void preCheckTransfer() {
+         // Kiểm tra đầu vào cơ bản
+         String amountStr = edtAmount.getText().toString().replace(".", "");
++
+         if (amountStr.isEmpty()) {
+             edtAmount.setError("Vui lòng nhập số tiền");
+             return;
+         }
++
+         double amount = Double.parseDouble(amountStr);
+         if (amount <= 0) {
+             edtAmount.setError("Số tiền phải lớn hơn 0");
+             return;
+         }
++        if (amount < 10000) {
++            edtAmount.setError("Giao dịch tối thiểu 10.000 VND");
++            return;
++        }
++        if (amount > AMOUNT_TRANSACTION_LIMIT) {
++            edtAmount.setError("Giao dịch tối đa " + formatMoney(AMOUNT_TRANSACTION_LIMIT) + " VND");
++            return;
++        }
++        if (amount > currentUserBalance) {
++            showErrorDialog("Số dư tài khoản không đủ để thực hiện giao dịch");
++            return;
++        }
+ 
+         // KIỂM TRA KHÓA (LOCKOUT)
+         if (isLockedOut()) {
+@@ -186,6 +205,7 @@
+         // Nếu có SĐT thì gửi OTP
+         if (senderPhone != null && !senderPhone.isEmpty()) {
+             // Show loading
++            setLoading(true);
+             Toast.makeText(this, "Đang gửi mã OTP...", Toast.LENGTH_SHORT).show();
+             phoneAuthManager.sendOtp(senderPhone);
+         } else {
+@@ -221,7 +241,7 @@
+             if (otpDialog != null && otpDialog.isVisible()) {
+                 otpDialog.dismiss();
+             }
+-
++            setLoading(false);
+             showErrorDialog("Bạn đã nhập sai quá 3 lần. Chức năng chuyển tiền bị khóa trong 30 phút.");
+         } else {
+             editor.putInt(KEY_FAILED_ATTEMPTS, attempts);
+@@ -243,9 +263,9 @@
+     }
+ 
+     // --- IMPLEMENT PHONE AUTH CALLBACKS (Giao tiếp với PhoneAuthManager) ---
+-
+     @Override
+     public void onCodeSent() {
++        setLoading(false);
+         // OTP đã gửi thành công -> Hiện Dialog nhập
+         otpDialog = OtpBottomSheetDialog.newInstance(""); // Truyền sđt nếu muốn hiển thị
+         otpDialog.setOtpVerificationListener(this);
+@@ -428,7 +448,7 @@
+ 
+         // 2. Thực hiện Transaction trong Firestore
+         db.runTransaction((Transaction.Function<Void>) transaction -> {
+-            // ===== PHASE 1: READ ALL DATA FIRST =====
++            // 1. READ ALL DATA FIRST
+             // Đọc số dư người gửi
+             Double senderBalance = transaction.get(senderRef).getDouble("balance");
+             if (senderBalance == null) senderBalance = 0.0;
+@@ -440,13 +460,13 @@
+                 if (receiverBalance == null) receiverBalance = 0.0;
+             }
+ 
+-            // ===== PHASE 2: VALIDATE =====
++            // 2. VALIDATE
+             // Kiểm tra số dư
+             if (senderBalance < amount) {
+                 throw new FirebaseFirestoreException("Insufficient funds", FirebaseFirestoreException.Code.ABORTED);
+             }
+ 
+-            // ===== PHASE 3: WRITE ALL DATA =====
++            // 3. WRITE ALL DATA
+             // Tính toán số dư mới
+             double newSenderBalance = senderBalance - amount;
+             double newReceiverBalance = receiverBalance + amount;
+@@ -575,6 +595,9 @@
+     // Lấy thông tin người gửi
+     private void fetchSenderInfo() {
+         if (currentUserId == null) return;
++
++        setLoading(true);
++
+         db.collection("users")
+                 .document(currentUserId)
+                 .get()
+@@ -582,7 +605,8 @@
+                     if (task.isSuccessful()) {
+                         DocumentSnapshot userDoc = task.getResult();
+                         if (userDoc.exists()) {
+-                            // Lấy field "full_name" như trong đoạn mã mẫu
++                            setLoading(false);
++                            // Lấy tên
+                             String name = userDoc.getString("full_name");
+ 
+                             if (name != null && !name.isEmpty()) {
+@@ -608,5 +632,32 @@
+                         Toast.makeText(this, "Lỗi kết nối khi lấy thông tin người gửi", Toast.LENGTH_SHORT).show();
+                     }
+                 });
++
++        db.collection("accounts").document(currentUserId).get()
++                .addOnCompleteListener(task -> {
++
++                    setLoading(false);
++
++                    if (task.isSuccessful() && task.getResult() != null) {
++                        DocumentSnapshot accountDoc = task.getResult();
++                        if (accountDoc.exists()) {
++                            Double balance = accountDoc.getDouble("balance");
++                            if (balance != null) currentUserBalance = balance;
++                        }
++                    }
++                });
++    }
++
++    private void setLoading(boolean isLoading) {
++        if (isLoading) {
++            progressBar.setVisibility(View.VISIBLE);
++            btnTransfer.setEnabled(false);
++            // Làm mờ màn hình
++            findViewById(R.id.transferDetails).setAlpha(0.5f);
++        } else {
++            progressBar.setVisibility(View.GONE);
++            btnTransfer.setEnabled(true);
++            findViewById(R.id.transferDetails).setAlpha(1.0f);
++        }
+     }
+ }

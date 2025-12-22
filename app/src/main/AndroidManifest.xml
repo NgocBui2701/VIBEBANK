@@ -105,6 +105,57 @@
             android:exported="false"
             android:windowSoftInputMode="adjustPan" />
         <activity
+            android:name=".ElectricBillActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".ElectricBillResultActivity"
+            android:exported="false" />
+        <activity
+            android:name=".WaterBillActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".WaterBillResultActivity"
+            android:exported="false" />
+        <activity
+            android:name=".TopupActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".TopupResultActivity"
+            android:exported="false" />
+        <activity
+            android:name=".FlightTicketActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".FlightTicketResultActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MyTicketsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MyMovieTicketsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MovieTicketActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".MovieTicketResultActivity"
+            android:exported="false" />
+        <activity
+            android:name=".HotelBookingActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".HotelBookingResultActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MyHotelBookingsActivity"
+            android:exported="false" />
+        <activity
             android:name=".MyQRActivity"
             android:exported="false" />
         <activity

@@ -90,7 +90,7 @@ public class LoginActivity extends BaseActivity implements
         String savedPhone = sessionManager.getSavedPhone();
         if (!savedPhone.isEmpty()) {
             etUsername.setText(savedPhone);
-            etUsername.setEnabled(false);
+            etUsername.setEnabled(true);
             etPassword.requestFocus();
         }
     }

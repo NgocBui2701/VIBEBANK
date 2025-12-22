@@ -32,6 +32,12 @@ import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.bumptech.glide.Glide;
 import com.example.vibebank.AccountManagementActivity;
+import com.example.vibebank.ElectricBillActivity;
+import com.example.vibebank.WaterBillActivity;
+import com.example.vibebank.TopupActivity;
+import com.example.vibebank.FlightTicketActivity;
+import com.example.vibebank.MovieTicketActivity;
+import com.example.vibebank.HotelBookingActivity;
 import com.example.vibebank.MyQRActivity;
 import com.example.vibebank.NotificationsActivity;
 import com.example.vibebank.ScanQRActivity;
@@ -548,23 +554,35 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
         // Secondary functions
-        findViewById(R.id.btnElectricity).setOnClickListener(v ->
-            Toast.makeText(this, "Tiền điện", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnElectricity).setOnClickListener(v -> {
+            Intent intent = new Intent(this, ElectricBillActivity.class);
+            startActivity(intent);
+        });
 
-        findViewById(R.id.btnWater).setOnClickListener(v ->
-            Toast.makeText(this, "Tiền nước", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnWater).setOnClickListener(v -> {
+            Intent intent = new Intent(this, WaterBillActivity.class);
+            startActivity(intent);
+        });
 
-        findViewById(R.id.btnTopup).setOnClickListener(v ->
-            Toast.makeText(this, "Nạp cước", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnTopup).setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, TopupActivity.class);
+            startActivity(intent);
+        });
 
-        findViewById(R.id.btnTicket).setOnClickListener(v ->
-            Toast.makeText(this, "Vé máy bay", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnTicket).setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, FlightTicketActivity.class);
+            startActivity(intent);
+        });
 
-        findViewById(R.id.btnMovie).setOnClickListener(v ->
-            Toast.makeText(this, "Vé xem phim", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnMovie).setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, MovieTicketActivity.class);
+            startActivity(intent);
+        });
 
-        findViewById(R.id.btnHotel).setOnClickListener(v ->
-            Toast.makeText(this, "Khách sạn", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnHotel).setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, HotelBookingActivity.class);
+            startActivity(intent);
+        });
     }
 
     // MapView lifecycle methods
