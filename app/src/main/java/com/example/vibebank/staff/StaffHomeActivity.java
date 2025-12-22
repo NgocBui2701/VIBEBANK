@@ -26,9 +26,8 @@ public class StaffHomeActivity extends AppCompatActivity {
 
     private DrawerLayout drawerLayout;
     private ImageView btnMenu, btnNotification;
-    private TextView txtStaffName, txtTotalCustomers, txtPendingApprovals;
-    private CardView btnCustomerList, btnCreateCustomer, btnEkycVerification, 
-                     btnTransactionApproval, btnInterestRate, btnReports;
+    private TextView txtStaffName, txtTotalCustomers;
+    private CardView btnCustomerList, btnCreateCustomer, btnEkycVerification, btnInterestRate;
 
     private FirebaseFirestore db;
     private SessionManager sessionManager;
@@ -62,14 +61,11 @@ public class StaffHomeActivity extends AppCompatActivity {
         btnNotification = findViewById(R.id.btnNotification);
         txtStaffName = findViewById(R.id.txtStaffName);
         txtTotalCustomers = findViewById(R.id.txtTotalCustomers);
-        txtPendingApprovals = findViewById(R.id.txtPendingApprovals);
 
         btnCustomerList = findViewById(R.id.btnCustomerList);
         btnCreateCustomer = findViewById(R.id.btnCreateCustomer);
         btnEkycVerification = findViewById(R.id.btnEkycVerification);
-        btnTransactionApproval = findViewById(R.id.btnTransactionApproval);
         btnInterestRate = findViewById(R.id.btnInterestRate);
-        btnReports = findViewById(R.id.btnReports);
     }
 
     private void setupListeners() {
@@ -99,18 +95,9 @@ public class StaffHomeActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        btnTransactionApproval.setOnClickListener(v -> {
-            Intent intent = new Intent(this, TransactionApprovalActivity.class);
-            startActivity(intent);
-        });
-
         btnInterestRate.setOnClickListener(v -> {
             Intent intent = new Intent(this, AccountInterestRateActivity.class);
             startActivity(intent);
-        });
-
-        btnReports.setOnClickListener(v -> {
-            Toast.makeText(this, "Báo cáo (Coming soon)", Toast.LENGTH_SHORT).show();
         });
 
         // Navigation Drawer
@@ -187,15 +174,6 @@ public class StaffHomeActivity extends AppCompatActivity {
                 .addOnSuccessListener(querySnapshot -> {
                     int total = querySnapshot.size();
                     txtTotalCustomers.setText(String.valueOf(total));
-                });
-
-        // Load pending eKYC approvals
-        db.collection("kyc_documents")
-                .whereEqualTo("status", "pending")
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    int pending = querySnapshot.size();
-                    txtPendingApprovals.setText(String.valueOf(pending));
                 });
     }
 

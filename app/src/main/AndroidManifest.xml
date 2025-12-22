@@ -198,9 +198,6 @@
             android:name=".staff.EkycVerificationActivity"
             android:exported="false" />
         <activity
-            android:name=".staff.TransactionApprovalActivity"
-            android:exported="false" />
-        <activity
             android:name=".staff.AccountInterestRateActivity"
             android:exported="false" />
         
