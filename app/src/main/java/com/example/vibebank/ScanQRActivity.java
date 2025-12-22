@@ -24,6 +24,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.zxing.BinaryBitmap;
+import com.google.zxing.DecodeHintType;
 import com.google.zxing.MultiFormatReader;
 import com.google.zxing.RGBLuminanceSource;
 import com.google.zxing.Result;
@@ -35,6 +36,8 @@ import com.journeyapps.barcodescanner.DecoratedBarcodeView;
 import org.json.JSONObject;
 
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ScanQRActivity extends AppCompatActivity {
 
@@ -403,7 +406,12 @@ public class ScanQRActivity extends AppCompatActivity {
                 RGBLuminanceSource source = new RGBLuminanceSource(bitmap.getWidth(), bitmap.getHeight(), intArray);
                 BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(source));
 
+                // Thêm decode hint UTF-8 để đọc đúng tiếng Việt
+                Map<DecodeHintType, Object> hints = new HashMap<>();
+                hints.put(DecodeHintType.CHARACTER_SET, "UTF-8");
+
                 MultiFormatReader reader = new MultiFormatReader();
+                reader.setHints(hints);
                 Result result = reader.decode(binaryBitmap);
 
                 processQRCode(result.getText());
