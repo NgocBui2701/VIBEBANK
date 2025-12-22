@@ -335,8 +335,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         findViewById(R.id.btnMovie).setOnClickListener(v -> 
             Toast.makeText(this, "Vé xem phim", Toast.LENGTH_SHORT).show());
         
-        findViewById(R.id.btnHotel).setOnClickListener(v -> 
-            Toast.makeText(this, "Khách sạn", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnHotel).setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, HotelBookingActivity.class);
+            startActivity(intent);
+        });
     }
     
     // MapView lifecycle methods

@@ -32,6 +32,7 @@ import com.example.vibebank.WaterBillActivity;
 import com.example.vibebank.TopupActivity;
 import com.example.vibebank.FlightTicketActivity;
 import com.example.vibebank.MovieTicketActivity;
+import com.example.vibebank.HotelBookingActivity;
 import com.example.vibebank.MyQRActivity;
 import com.example.vibebank.NotificationsActivity;
 import com.example.vibebank.ScanQRActivity;
@@ -517,8 +518,10 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
             startActivity(intent);
         });
 
-        findViewById(R.id.btnHotel).setOnClickListener(v ->
-            Toast.makeText(this, "Khách sạn", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnHotel).setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, HotelBookingActivity.class);
+            startActivity(intent);
+        });
     }
 
     // MapView lifecycle methods

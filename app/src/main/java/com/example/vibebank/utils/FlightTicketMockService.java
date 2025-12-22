@@ -2,25 +2,37 @@ package com.example.vibebank.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class FlightTicketMockService {
 
+    private static final String TAG = "FlightTicketService";
     private static final String PREFS_NAME = "FlightTicketPrefs";
     private static final String KEY_BOOKED_TICKETS = "booked_tickets";
+    private static final String COLLECTION_BOOKED_TICKETS = "booked_flight_tickets";
     private static Context appContext;
+    private static FirebaseFirestore firestore;
+    private static FirebaseAuth auth;
 
     public static void init(Context context) {
         if (appContext == null) {
             appContext = context.getApplicationContext();
+            firestore = FirebaseFirestore.getInstance();
+            auth = FirebaseAuth.getInstance();
         }
     }
 
@@ -129,9 +141,61 @@ public class FlightTicketMockService {
         public String getPassengerEmail() { return passengerEmail; }
         public String getBookingTime() { return bookingTime; }
 
-        public JSONObject toJSON() {
+        public Map<String, Object> toMap() {
+            Map<String, Object> map = new HashMap<>();
+            map.put("bookingId", bookingId);
+            map.put("flightCode", flightCode);
+            map.put("airline", airline);
+            map.put("departure", departure);
+            map.put("destination", destination);
+            map.put("departureDate", departureDate);
+            map.put("departureTime", departureTime);
+            map.put("arrivalTime", arrivalTime);
+            map.put("seatClass", seatClass);
+            map.put("price", price);
+            map.put("duration", duration);
+            map.put("passengerName", passengerName);
+            map.put("passengerID", passengerID);
+            map.put("passengerPhone", passengerPhone);
+            map.put("passengerEmail", passengerEmail);
+            map.put("bookingTime", bookingTime);
+            if (auth != null && auth.getCurrentUser() != null) {
+                map.put("userId", auth.getCurrentUser().getUid());
+            }
+            map.put("timestamp", System.currentTimeMillis());
+            return map;
+        }
+
+        public static BookedTicket fromMap(Map<String, Object> map) {
             try {
-                JSONObject json = new JSONObject();
+                return new BookedTicket(
+                    (String) map.get("bookingId"),
+                    (String) map.get("flightCode"),
+                    (String) map.get("airline"),
+                    (String) map.get("departure"),
+                    (String) map.get("destination"),
+                    (String) map.get("departureDate"),
+                    (String) map.get("departureTime"),
+                    (String) map.get("arrivalTime"),
+                    (String) map.get("seatClass"),
+                    map.get("price") instanceof Long ? (Long) map.get("price") : ((Number) map.get("price")).longValue(),
+                    (String) map.get("duration"),
+                    (String) map.get("passengerName"),
+                    (String) map.get("passengerID"),
+                    (String) map.get("passengerPhone"),
+                    (String) map.getOrDefault("passengerEmail", ""),
+                    (String) map.get("bookingTime")
+                );
+            } catch (Exception e) {
+                Log.e(TAG, "Error converting map to BookedTicket", e);
+                return null;
+            }
+        }
+
+        // Keep old JSON methods for backward compatibility
+        public org.json.JSONObject toJSON() {
+            try {
+                org.json.JSONObject json = new org.json.JSONObject();
                 json.put("bookingId", bookingId);
                 json.put("flightCode", flightCode);
                 json.put("airline", airline);
@@ -149,12 +213,12 @@ public class FlightTicketMockService {
                 json.put("passengerEmail", passengerEmail);
                 json.put("bookingTime", bookingTime);
                 return json;
-            } catch (JSONException e) {
+            } catch (org.json.JSONException e) {
                 return null;
             }
         }
 
-        public static BookedTicket fromJSON(JSONObject json) {
+        public static BookedTicket fromJSON(org.json.JSONObject json) {
             try {
                 return new BookedTicket(
                     json.getString("bookingId"),
@@ -174,7 +238,7 @@ public class FlightTicketMockService {
                     json.optString("passengerEmail", ""),
                     json.getString("bookingTime")
                 );
-            } catch (JSONException e) {
+            } catch (org.json.JSONException e) {
                 return null;
             }
         }

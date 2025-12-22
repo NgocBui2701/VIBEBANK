@@ -147,6 +147,38 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         receiverUid = getIntent().getStringExtra("receiverUserId");
         String bankName = getIntent().getStringExtra("bankName");
 
+        // Check if this is a service payment (electric, water, topup, flight, movie, hotel)
+        boolean isElectricBillPayment = getIntent().getBooleanExtra("isElectricBillPayment", false);
+        boolean isWaterBillPayment = getIntent().getBooleanExtra("isWaterBillPayment", false);
+        boolean isTopupPayment = getIntent().getBooleanExtra("isTopupPayment", false);
+        boolean isFlightTicketPayment = getIntent().getBooleanExtra("isFlightTicketPayment", false);
+        boolean isMovieTicketPayment = getIntent().getBooleanExtra("isMovieTicketPayment", false);
+        boolean isHotelBookingPayment = getIntent().getBooleanExtra("isHotelBookingPayment", false);
+        
+        boolean isServicePayment = isElectricBillPayment || isWaterBillPayment || isTopupPayment || 
+                                   isFlightTicketPayment || isMovieTicketPayment || isHotelBookingPayment;
+
+        // For service payments, set default values if not provided
+        if (isServicePayment) {
+            if (receiverAccountNumber == null || receiverAccountNumber.isEmpty()) {
+                receiverAccountNumber = "SERVICE";
+            }
+            if (receiverName == null || receiverName.isEmpty()) {
+                if (isElectricBillPayment) receiverName = "Thanh toán tiền điện";
+                else if (isWaterBillPayment) receiverName = "Thanh toán tiền nước";
+                else if (isTopupPayment) receiverName = "Nạp tiền điện thoại";
+                else if (isFlightTicketPayment) receiverName = "Thanh toán vé máy bay";
+                else if (isMovieTicketPayment) receiverName = "Thanh toán vé xem phim";
+                else if (isHotelBookingPayment) receiverName = "Thanh toán đặt phòng khách sạn";
+            }
+            if (receiverUid == null || receiverUid.isEmpty()) {
+                receiverUid = "SYSTEM_SERVICE";
+            }
+            if (bankName == null) {
+                bankName = "VibeBank";
+            }
+        }
+
         // Validate - only accountNumber is required
         if (receiverAccountNumber == null || receiverAccountNumber.isEmpty()) {
             Toast.makeText(this, "Lỗi: Không tìm thấy số tài khoản người nhận", Toast.LENGTH_SHORT).show();
@@ -383,7 +415,8 @@ public class TransferDetailsActivity extends AppCompatActivity implements
 
         final DocumentReference senderRef = db.collection("accounts").document(currentUserId);
         final boolean isExternalBank = "EXTERNAL_BANK".equals(receiverUid);
-        final DocumentReference receiverRef = isExternalBank ? null : db.collection("accounts").document(receiverUid);
+        final boolean isSystemService = "SYSTEM_SERVICE".equals(receiverUid);
+        final DocumentReference receiverRef = (isExternalBank || isSystemService) ? null : db.collection("accounts").document(receiverUid);
 
         // 2. Thực hiện Transaction trong Firestore
         db.runTransaction((Transaction.Function<Void>) transaction -> {
@@ -392,9 +425,9 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             Double senderBalance = transaction.get(senderRef).getDouble("balance");
             if (senderBalance == null) senderBalance = 0.0;
 
-            // Đọc số dư người nhận (nếu là internal transfer)
+            // Đọc số dư người nhận (nếu là internal transfer và không phải system service)
             Double receiverBalance = 0.0;
-            if (!isExternalBank && receiverRef != null) {
+            if (!isExternalBank && !isSystemService && receiverRef != null) {
                 receiverBalance = transaction.get(receiverRef).getDouble("balance");
                 if (receiverBalance == null) receiverBalance = 0.0;
             }
@@ -413,8 +446,8 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             // Update số dư người gửi
             transaction.update(senderRef, "balance", newSenderBalance);
 
-            // Update số dư người nhận (nếu là internal transfer)
-            if (!isExternalBank && receiverRef != null) {
+            // Update số dư người nhận (chỉ nếu là internal transfer và không phải system service)
+            if (!isExternalBank && !isSystemService && receiverRef != null) {
                 transaction.update(receiverRef, "balance", newReceiverBalance);
             }
 
@@ -434,8 +467,8 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             DocumentReference senderLogRef = senderRef.collection("transactions").document(transId);
             transaction.set(senderLogRef, senderLog);
 
-            // Chỉ ghi lịch sử cho người nhận nếu là internal transfer
-            if (!isExternalBank && receiverRef != null) {
+            // Chỉ ghi lịch sử cho người nhận nếu là internal transfer và không phải system service
+            if (!isExternalBank && !isSystemService && receiverRef != null) {
                 Map<String, Object> receiverLog = new HashMap<>();
                 receiverLog.put("userId", receiverUid);
                 receiverLog.put("type", "RECEIVED");
@@ -552,6 +585,17 @@ public class TransferDetailsActivity extends AppCompatActivity implements
                 // Save booking
                 MovieTicketMockService.bookSeats(showtimeKey, seats, movieTitle, cinemaName,
                         date, time, (long) amount, customerName, customerPhone, customerEmail);
+            }
+
+            // For hotel booking, return result directly without going to TransferResultActivity
+            boolean isHotelBookingPayment = getIntent().getBooleanExtra("isHotelBookingPayment", false);
+            if (isHotelBookingPayment) {
+                android.util.Log.d("TransferDetailsActivity", "Hotel booking payment completed - returning to booking activity");
+                Intent resultIntent = new Intent();
+                resultIntent.putExtra("paymentSuccess", true);
+                setResult(RESULT_OK, resultIntent);
+                finish();
+                return;
             }
 
             Intent intent = new Intent(TransferDetailsActivity.this, TransferResultActivity.class);

@@ -146,6 +146,16 @@
             android:name=".MovieTicketResultActivity"
             android:exported="false" />
         <activity
+            android:name=".HotelBookingActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".HotelBookingResultActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MyHotelBookingsActivity"
+            android:exported="false" />
+        <activity
             android:name=".MyQRActivity"
             android:exported="false" />
         <activity
