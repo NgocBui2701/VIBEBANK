@@ -39,7 +39,8 @@
 
         <activity
             android:name=".ui.login.LoginActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -100,6 +101,10 @@
             android:windowSoftInputMode="adjustPan" />
         <activity
             android:name=".WithdrawCodeActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".WithdrawCodeHistoryActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustPan" />
         <activity
@@ -169,6 +174,36 @@
         <activity
             android:name=".DepositActivity"
             android:exported="false" />
+        
+        <!-- Topup Options Activity -->
+        <activity
+            android:name=".TopupOptionsActivity"
+            android:exported="false" />
+        
+        <!-- VNPay Test Activity -->
+        <activity
+            android:name=".VNPayTestActivity"
+            android:exported="false" />
+        
+        <!-- VNPay WebView Activity -->
+        <activity
+            android:name=".vnpay.VNPayWebViewActivity"
+            android:exported="false" />
+        
+        <!-- VNPay Payment Result Activity -->
+        <activity
+            android:name=".vnpay.VNPayActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="vibebank"
+                    android:host="vnpay-return" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

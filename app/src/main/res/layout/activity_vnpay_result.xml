@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
+
+        <!-- Result Icon -->
+        <ImageView
+            android:id="@+id/imgVnpayResult"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_marginTop="40dp"
+            android:src="@drawable/ic_check_green"
+            android:contentDescription="Result Icon" />
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/tvVnpayTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="THANH TOÁN THÀNH CÔNG"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/success" />
+
+        <!-- Message -->
+        <TextView
+            android:id="@+id/tvVnpayMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Giao dịch của bạn đã được xử lý thành công."
+            android:textSize="14sp"
+            android:textAlignment="center"
+            android:textColor="@color/success" />
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="16dp"
+            android:background="@color/divider" />
+
+        <!-- Transaction Details -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_border"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="THÔNG TIN GIAO DỊCH"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Amount -->
+            <TextView
+                android:id="@+id/tvVnpayAmount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Số tiền: 100,000 VND"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Transaction Reference -->
+            <TextView
+                android:id="@+id/tvVnpayTxnRef"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mã giao dịch: TXN123456"
+                android:textSize="14sp"
+                android:textColor="@color/black"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Bank Code -->
+            <TextView
+                android:id="@+id/tvVnpayBankCode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ngân hàng: NCB"
+                android:textSize="14sp"
+                android:textColor="@color/black"
+                android:layout_marginBottom="8dp" />
+
+            <!-- VNPay Transaction No -->
+            <TextView
+                android:id="@+id/tvVnpayTransactionNo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mã GD VNPAY: 14226112"
+                android:textSize="14sp"
+                android:textColor="@color/black"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Payment Date -->
+            <TextView
+                android:id="@+id/tvVnpayPayDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Thời gian: 22/12/2025 10:30:00"
+                android:textSize="14sp"
+                android:textColor="@color/black"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Response Code -->
+            <TextView
+                android:id="@+id/tvVnpayResponseCode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mã phản hồi: 00"
+                android:textSize="14sp"
+                android:textColor="@color/black" />
+
+        </LinearLayout>
+
+        <!-- Close Button -->
+        <Button
+            android:id="@+id/btnVnpayClose"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:text="Đóng"
+            android:textColor="@color/white"
+            android:background="@drawable/button_primary"
+            android:padding="16dp"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</ScrollView>

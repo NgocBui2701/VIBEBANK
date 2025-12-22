@@ -45,9 +45,6 @@ public class AccountManagementActivity extends AppCompatActivity {
     private ImageView btnToggleDeposit;
     private ProgressBar progressBar;
     
-    // Bottom button
-    private MaterialButton btnDeposit;
-    
     // State
     private int currentTab = 0; // 0: Payment, 1: Saving, 2: Credit
     private boolean isDepositVisible = true;
@@ -112,9 +109,6 @@ public class AccountManagementActivity extends AppCompatActivity {
         txtMonthlyProfit = findViewById(R.id.txtMonthlyProfit);
         btnToggleDeposit = findViewById(R.id.btnToggleDeposit);
         progressBar = findViewById(R.id.progressBar);
-        
-        // Bottom button
-        btnDeposit = findViewById(R.id.btnDeposit);
     }
     
     private void setupListeners() {
@@ -141,12 +135,6 @@ public class AccountManagementActivity extends AppCompatActivity {
         btnToggleDeposit.setOnClickListener(v -> {
             isDepositVisible = !isDepositVisible;
             updateDepositVisibility();
-        });
-        
-        btnDeposit.setOnClickListener(v -> {
-            Intent intent = new Intent(AccountManagementActivity.this, DepositActivity.class);
-            intent.putExtra("accountType", currentTab);
-            startActivity(intent);
         });
     }
     
