@@ -51,12 +51,26 @@
             android:orientation="vertical"
             android:padding="20dp">
 
+            <!-- Personal Info Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Thông tin cá nhân"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:layout_marginBottom="16dp" />
+
             <!-- Full Name -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:boxBackgroundMode="outline">
+                android:layout_marginBottom="12dp"
+                app:boxBackgroundMode="outline"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/edtFullName"
@@ -71,15 +85,20 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:boxBackgroundMode="outline">
+                android:layout_marginBottom="12dp"
+                app:boxBackgroundMode="outline"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/edtPhone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Số điện thoại *"
-                    android:inputType="phone" />
+                    android:inputType="phone"
+                    android:digits="0123456789" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -87,8 +106,12 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:boxBackgroundMode="outline">
+                android:layout_marginBottom="12dp"
+                app:boxBackgroundMode="outline"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/edtEmail"
@@ -103,15 +126,20 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:boxBackgroundMode="outline">
+                android:layout_marginBottom="12dp"
+                app:boxBackgroundMode="outline"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/edtAddress"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Địa chỉ"
-                    android:inputType="textPostalAddress" />
+                    android:inputType="textPostalAddress"
+                    android:maxLines="2" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -119,17 +147,159 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:boxBackgroundMode="outline">
+                android:layout_marginBottom="20dp"
+                app:boxBackgroundMode="outline"
+                app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/edtIdNumber"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Số CCCD"
-                    android:inputType="number" />
+                    android:inputType="number"
+                    android:digits="0123456789"
+                    android:maxLength="12" />
 
             </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- eKYC Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Xác minh danh tính (eKYC)"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Upload CCCD Front -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardFrontId"
+                android:layout_width="match_parent"
+                android:layout_height="160dp"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:id="@+id/imgFrontId"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/logo_gradient"
+                        android:alpha="0.3" />
+
+                    <TextView
+                        android:id="@+id/tvFrontIdStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Chụp mặt trước CCCD"
+                        android:textSize="14sp"
+                        android:textColor="@color/blue_transaction"
+                        android:textStyle="bold"
+                        android:layout_marginTop="8dp" />
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <!-- Upload CCCD Back -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardBackId"
+                android:layout_width="match_parent"
+                android:layout_height="160dp"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:id="@+id/imgBackId"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/logo_gradient"
+                        android:alpha="0.3" />
+
+                    <TextView
+                        android:id="@+id/tvBackIdStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Chụp mặt sau CCCD"
+                        android:textSize="14sp"
+                        android:textColor="@color/blue_transaction"
+                        android:textStyle="bold"
+                        android:layout_marginTop="8dp" />
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <!-- Upload Face -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardFace"
+                android:layout_width="match_parent"
+                android:layout_height="160dp"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:id="@+id/imgFace"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_avatar_placeholder"
+                        android:alpha="0.5" />
+
+                    <TextView
+                        android:id="@+id/tvFaceStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Chụp khuôn mặt"
+                        android:textSize="14sp"
+                        android:textColor="@color/blue_transaction"
+                        android:textStyle="bold"
+                        android:layout_marginTop="8dp" />
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
 
             <TextView
                 android:layout_width="wrap_content"
@@ -139,6 +309,15 @@
                 android:textColor="#666666"
                 android:layout_marginTop="8dp" />
 
+            <!-- Progress Bar -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="16dp"
+                android:visibility="gone" />
+
         </LinearLayout>
 
     </ScrollView>
@@ -146,15 +325,14 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnCreate"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="56dp"
         android:layout_margin="20dp"
         android:text="Tạo tài khoản"
         android:textColor="@color/white"
         android:textSize="16sp"
         android:textStyle="bold"
         app:backgroundTint="@color/blue_transaction"
-        app:cornerRadius="12dp"
+        app:cornerRadius="16dp"
         app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-

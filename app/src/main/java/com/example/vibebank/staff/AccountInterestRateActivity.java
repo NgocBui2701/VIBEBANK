@@ -77,9 +77,18 @@ public class AccountInterestRateActivity extends AppCompatActivity {
 
     private void saveRates() {
         try {
-            double paymentRate = Double.parseDouble(edtPaymentRate.getText().toString()) / 100;
-            double savingRate = Double.parseDouble(edtSavingRate.getText().toString()) / 100;
-            double creditRate = Double.parseDouble(edtCreditRate.getText().toString()) / 100;
+            String paymentStr = edtPaymentRate.getText().toString().replace(",", ".").trim();
+            String savingStr = edtSavingRate.getText().toString().replace(",", ".").trim();
+            String creditStr = edtCreditRate.getText().toString().replace(",", ".").trim();
+            
+            if (paymentStr.isEmpty() || savingStr.isEmpty() || creditStr.isEmpty()) {
+                Toast.makeText(this, "Vui lòng nhập đầy đủ lãi suất", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            double paymentRate = Double.parseDouble(paymentStr) / 100;
+            double savingRate = Double.parseDouble(savingStr) / 100;
+            double creditRate = Double.parseDouble(creditStr) / 100;
 
             Map<String, Object> rates = new HashMap<>();
             rates.put("payment", paymentRate);
