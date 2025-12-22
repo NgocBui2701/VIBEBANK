@@ -35,11 +35,17 @@ public class TicketDatabaseService {
     // ============ FLIGHT TICKETS ============
     
     public static void saveFlightTicket(Map<String, Object> ticketData, OnSaveListener listener) {
+        Log.d(TAG, "========== SAVE FLIGHT TICKET ==========");
+        Log.d(TAG, "Data received: " + ticketData.toString());
+        
         init();
         if (auth.getCurrentUser() == null) {
+            Log.e(TAG, "✗✗✗ User not authenticated!");
             if (listener != null) listener.onError("User not authenticated");
             return;
         }
+        
+        Log.d(TAG, "✓ User authenticated: " + auth.getCurrentUser().getUid());
         
         ticketData.put("userId", auth.getCurrentUser().getUid());
         ticketData.put("timestamp", System.currentTimeMillis());
@@ -52,27 +58,33 @@ public class TicketDatabaseService {
         }
         
         final String finalBookingId = bookingId;
+        Log.d(TAG, "Saving to Firestore with ID: " + finalBookingId);
+        
         firestore.collection(COLLECTION_FLIGHT_TICKETS)
                 .document(finalBookingId)
                 .set(ticketData)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Flight ticket saved: " + finalBookingId);
+                    Log.d(TAG, "✓✓✓ Flight ticket saved successfully: " + finalBookingId);
                     if (listener != null) listener.onSuccess(finalBookingId);
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error saving flight ticket", e);
+                    Log.e(TAG, "✗✗✗ Error saving flight ticket: " + e.getMessage(), e);
                     if (listener != null) listener.onError(e.getMessage());
                 });
     }
     
     public static void loadFlightTickets(OnLoadListener listener) {
+        Log.d(TAG, "========== LOAD FLIGHT TICKETS ==========");
         init();
         if (auth.getCurrentUser() == null) {
+            Log.e(TAG, "✗✗✗ User not authenticated!");
             if (listener != null) listener.onLoaded(new ArrayList<>());
             return;
         }
         
         String userId = auth.getCurrentUser().getUid();
+        Log.d(TAG, "Loading tickets for user: " + userId);
+        
         firestore.collection(COLLECTION_FLIGHT_TICKETS)
                 .whereEqualTo("userId", userId)
                 .get()
@@ -87,11 +99,11 @@ public class TicketDatabaseService {
                         Long t2 = (Long) b.getOrDefault("timestamp", 0L);
                         return t2.compareTo(t1);
                     });
-                    Log.d(TAG, "Loaded " + tickets.size() + " flight tickets");
+                    Log.d(TAG, "✓✓✓ Loaded " + tickets.size() + " flight tickets");
                     if (listener != null) listener.onLoaded(tickets);
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error loading flight tickets", e);
+                    Log.e(TAG, "✗✗✗ Error loading flight tickets: " + e.getMessage(), e);
                     if (listener != null) listener.onLoaded(new ArrayList<>());
                 });
     }

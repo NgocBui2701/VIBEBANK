@@ -28,6 +28,7 @@ import com.example.vibebank.utils.FlightTicketMockService;
 import com.example.vibebank.utils.MovieTicketMockService;
 import com.example.vibebank.utils.PhoneAuthManager;
 import com.example.vibebank.utils.SessionManager;
+import com.example.vibebank.utils.TicketDatabaseService;
 import com.example.vibebank.utils.WaterBillMockService;
 
 import java.util.ArrayList;
@@ -78,6 +79,14 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     private ProgressBar progressBar;
     private double currentUserBalance = 0;
     private boolean isSenderInfoLoaded = false;
+    
+    // Flags to prevent duplicate booking saves
+    private boolean isFlightTicketSaved = false;
+    private boolean isMovieTicketSaved = false;
+    private boolean isHotelBookingSaved = false;
+    
+    // Flag to prevent duplicate transaction execution
+    private boolean isTransactionProcessing = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,6 +96,10 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         db = FirebaseFirestore.getInstance();
         phoneAuthManager = new PhoneAuthManager(this, this);
         sessionManager = new SessionManager(this);
+        
+        // Initialize TicketDatabaseService for flight and movie ticket bookings
+        TicketDatabaseService.init();
+        android.util.Log.d("TransferDetailsActivity", "TicketDatabaseService initialized");
 
         // Ánh xạ
         tvReceiverBank = findViewById(R.id.txtRecipientBank);
@@ -369,9 +382,19 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     }
 
     private void performTransaction() {
+        
+        // Prevent duplicate transaction execution
+        if (isTransactionProcessing) {
+            android.util.Log.w("TransferDetailsActivity", "⚠️ Transaction already in progress, skipping duplicate call");
+            return;
+        }
+        
+        isTransactionProcessing = true;
+        android.util.Log.d("TransferDetailsActivity", "✓ Starting transaction processing");
 
         if (currentUserId == null) {
             Toast.makeText(this, "Lỗi: Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", Toast.LENGTH_LONG).show();
+            isTransactionProcessing = false; // Reset flag on error
             return;
         }
 
@@ -379,6 +402,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         boolean isExternalTransfer = "EXTERNAL_BANK".equals(receiverUid);
         if (!isExternalTransfer && (receiverUid == null || receiverUid.isEmpty())) {
             Toast.makeText(this, "Lỗi: Không tìm thấy ID người nhận. Vui lòng thử lại.", Toast.LENGTH_LONG).show();
+            isTransactionProcessing = false; // Reset flag on error
             return;
         }
 
@@ -387,6 +411,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements
 
         if (amountStr.isEmpty()) {
             edtAmount.setError("Vui lòng nhập số tiền");
+            isTransactionProcessing = false; // Reset flag on error
             return;
         }
 
@@ -399,6 +424,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         // Kiểm tra số tiền tối thiểu
         if (amount <= 0) {
             edtAmount.setError("Số tiền phải lớn hơn 0");
+            isTransactionProcessing = false; // Reset flag on error
             return;
         }
 
@@ -484,6 +510,10 @@ public class TransferDetailsActivity extends AppCompatActivity implements
 
             return null;
         }).addOnSuccessListener(aVoid -> {
+            // Reset transaction flag on success
+            isTransactionProcessing = false;
+            android.util.Log.d("TransferDetailsActivity", "✓ Transaction completed successfully, flag reset");
+            
             // Thành công
             // Thông báo người gửi qua notification bar
             sendNotification("Biến động số dư", "Tài khoản -" + formattedAmount + " VND. Nội dung: " + message);
@@ -542,9 +572,13 @@ public class TransferDetailsActivity extends AppCompatActivity implements
                 android.util.Log.d("TransferDetailsActivity", "Topup payment completed: " + topupPhoneNumber + " - " + topupPackageName);
             }
 
-            // If this is a flight ticket payment, just log it and save booking
+            // If this is a flight ticket payment, save booking to Firestore
             boolean isFlightTicketPayment = getIntent().getBooleanExtra("isFlightTicketPayment", false);
-            if (isFlightTicketPayment) {
+            android.util.Log.d("TransferDetailsActivity", "isFlightTicketPayment = " + isFlightTicketPayment);
+            
+            if (isFlightTicketPayment && !isFlightTicketSaved) {
+                isFlightTicketSaved = true; // Set flag immediately to prevent duplicate saves
+                
                 String flightCode = getIntent().getStringExtra("flightCode");
                 String airline = getIntent().getStringExtra("airline");
                 String departure = getIntent().getStringExtra("departure");
@@ -559,17 +593,52 @@ public class TransferDetailsActivity extends AppCompatActivity implements
                 String passengerPhone = getIntent().getStringExtra("passengerPhone");
                 String passengerEmail = getIntent().getStringExtra("passengerEmail");
                 
-                android.util.Log.d("TransferDetailsActivity", "Flight ticket payment completed: " + flightCode + " - " + airline);
+                android.util.Log.d("TransferDetailsActivity", "========== BOOKING FLIGHT TICKET ==========");
+                android.util.Log.d("TransferDetailsActivity", "Flight: " + flightCode + ", Airline: " + airline);
+                android.util.Log.d("TransferDetailsActivity", "Route: " + departure + " → " + destination);
+                android.util.Log.d("TransferDetailsActivity", "Date: " + departureDate + ", Time: " + departureTime);
+                android.util.Log.d("TransferDetailsActivity", "Passenger: " + passengerName + ", " + passengerPhone);
+                android.util.Log.d("TransferDetailsActivity", "Amount: " + amount);
                 
-                // Save complete booking to SharedPreferences
-                FlightTicketMockService.bookTicket(flightCode, airline, departure, destination, 
-                        departureDate, departureTime, arrivalTime, seatClass, (long) amount, duration,
-                        passengerName, passengerID, passengerPhone, passengerEmail);
+                // Create flight ticket data map
+                java.util.Map<String, Object> flightData = new java.util.HashMap<>();
+                flightData.put("bookingId", "BK" + System.currentTimeMillis());
+                flightData.put("flightCode", flightCode);
+                flightData.put("airline", airline);
+                flightData.put("departure", departure);
+                flightData.put("destination", destination);
+                flightData.put("departureDate", departureDate);
+                flightData.put("departureTime", departureTime);
+                flightData.put("arrivalTime", arrivalTime);
+                flightData.put("seatClass", seatClass);
+                flightData.put("price", (long) amount);
+                flightData.put("duration", duration);
+                flightData.put("passengerName", passengerName);
+                flightData.put("passengerID", passengerID);
+                flightData.put("passengerPhone", passengerPhone);
+                flightData.put("passengerEmail", passengerEmail);
+                flightData.put("bookingTime", new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(new java.util.Date()));
+                flightData.put("timestamp", System.currentTimeMillis());
+                
+                // Save to Firestore
+                TicketDatabaseService.saveFlightTicket(flightData, new TicketDatabaseService.OnSaveListener() {
+                    @Override
+                    public void onSuccess(String bookingId) {
+                        android.util.Log.d("TransferDetailsActivity", "✓✓✓ Flight ticket saved to Firestore successfully. ID: " + bookingId);
+                    }
+                    
+                    @Override
+                    public void onError(String error) {
+                        android.util.Log.e("TransferDetailsActivity", "✗✗✗ Failed to save flight ticket to Firestore: " + error);
+                    }
+                });
             }
 
             // If this is a movie ticket payment, save booking
             boolean isMovieTicketPayment = getIntent().getBooleanExtra("isMovieTicketPayment", false);
-            if (isMovieTicketPayment) {
+            if (isMovieTicketPayment && !isMovieTicketSaved) {
+                isMovieTicketSaved = true; // Set flag immediately to prevent duplicate saves
+                
                 String movieTitle = getIntent().getStringExtra("movieTitle");
                 String cinemaName = getIntent().getStringExtra("cinemaName");
                 String date = getIntent().getStringExtra("date");
@@ -580,11 +649,39 @@ public class TransferDetailsActivity extends AppCompatActivity implements
                 String customerPhone = getIntent().getStringExtra("customerPhone");
                 String customerEmail = getIntent().getStringExtra("customerEmail");
                 
-                android.util.Log.d("TransferDetailsActivity", "Movie ticket payment completed: " + movieTitle);
+                android.util.Log.d("TransferDetailsActivity", "========== BOOKING MOVIE TICKET ==========");
+                android.util.Log.d("TransferDetailsActivity", "Movie: " + movieTitle + ", Cinema: " + cinemaName);
+                android.util.Log.d("TransferDetailsActivity", "Date: " + date + ", Time: " + time);
+                android.util.Log.d("TransferDetailsActivity", "Seats: " + seats);
                 
-                // Save booking
-                MovieTicketMockService.bookSeats(showtimeKey, seats, movieTitle, cinemaName,
-                        date, time, (long) amount, customerName, customerPhone, customerEmail);
+                // Create movie ticket data map
+                java.util.Map<String, Object> movieData = new java.util.HashMap<>();
+                movieData.put("bookingId", "MV" + System.currentTimeMillis());
+                movieData.put("movieTitle", movieTitle);
+                movieData.put("cinemaName", cinemaName);
+                movieData.put("date", date);
+                movieData.put("time", time);
+                movieData.put("showtimeKey", showtimeKey);
+                movieData.put("seats", new java.util.ArrayList<>(seats));
+                movieData.put("totalPrice", (long) amount);
+                movieData.put("customerName", customerName);
+                movieData.put("customerPhone", customerPhone);
+                movieData.put("customerEmail", customerEmail);
+                movieData.put("bookingTime", new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(new java.util.Date()));
+                movieData.put("timestamp", System.currentTimeMillis());
+                
+                // Save to Firestore
+                TicketDatabaseService.saveMovieTicket(movieData, new TicketDatabaseService.OnSaveListener() {
+                    @Override
+                    public void onSuccess(String bookingId) {
+                        android.util.Log.d("TransferDetailsActivity", "✓✓✓ Movie ticket saved to Firestore successfully. ID: " + bookingId);
+                    }
+                    
+                    @Override
+                    public void onError(String error) {
+                        android.util.Log.e("TransferDetailsActivity", "✗✗✗ Failed to save movie ticket to Firestore: " + error);
+                    }
+                });
             }
 
             // For hotel booking, return result directly without going to TransferResultActivity
@@ -612,6 +709,10 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             finish();
 
         }).addOnFailureListener(e -> {
+            // Reset transaction flag on failure
+            isTransactionProcessing = false;
+            android.util.Log.e("TransferDetailsActivity", "✗ Transaction failed, flag reset: " + e.getMessage());
+            
             setResult(RESULT_CANCELED);
             if (e.getMessage() != null && e.getMessage().contains("Insufficient funds")) {
                 showErrorDialog("Số dư tài khoản không đủ để thực hiện thao tác");
