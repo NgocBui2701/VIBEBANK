@@ -15,6 +15,9 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
+import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -57,6 +60,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     private EditText edtAmount, edtMessage;
     private CheckBox cbSaveContact;
     private Button btnTransfer;
+    private Spinner spinnerSourceAccount;
     private FirebaseFirestore db;
     private String currentUserId = null;
     private String senderName = "Người dùng ẩn danh";
@@ -66,6 +70,13 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     private static final double MAX_SUGGESTION_LIMIT = 999999999;
     private static final double AMOUNT_TRANSACTION_LIMIT = 500000000;
     private TextView tvSuggest1, tvSuggest2, tvSuggest3;
+    
+    // Source account info
+    private int selectedAccountType = 0; // 0: Payment, 1: Saving, 2: Credit
+    private double paymentBalance = 0;
+    private double savingBalance = 0;
+    private double creditAvailable = 0; // Credit limit - debt
+    private java.util.List<String> accountOptions = new java.util.ArrayList<>();
 
     // Các biến cho OTP và Lockout
     private PhoneAuthManager phoneAuthManager;
@@ -115,6 +126,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         edtMessage = findViewById(R.id.edtMessage);
         cbSaveContact = findViewById(R.id.cbSaveRecipient);
         btnTransfer = findViewById(R.id.btnTransfer);
+        spinnerSourceAccount = findViewById(R.id.spinnerSourceAccount);
         View btnBack = findViewById(R.id.btnBack);
         progressBar = findViewById(R.id.progressBar);
 
@@ -275,10 +287,35 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             edtAmount.setError("Giao dịch tối đa " + formatMoney(AMOUNT_TRANSACTION_LIMIT) + " VND");
             return;
         }
-        if (amount > currentUserBalance) {
-            showErrorDialog("Số dư tài khoản không đủ để thực hiện giao dịch");
+        // Validate amount against selected account balance
+        double availableBalance = 0;
+        String accountName = "";
+        switch (selectedAccountType) {
+            case 0: // Payment Account
+                availableBalance = paymentBalance;
+                accountName = "Thanh toán";
+                break;
+            case 1: // Saving Account
+                availableBalance = savingBalance;
+                accountName = "Tiết kiệm";
+                break;
+            case 2: // Credit Card
+                availableBalance = creditAvailable;
+                accountName = "Credit";
+                break;
+        }
+        
+        if (amount > availableBalance) {
+            android.util.Log.d("TransferDetails", "Validation failed - Amount: " + amount + ", Available: " + availableBalance + ", Account Type: " + selectedAccountType);
+            if (selectedAccountType == 2) {
+                showErrorDialog("Hạn mức Credit khả dụng không đủ để thực hiện giao dịch");
+            } else {
+                showErrorDialog("Số dư tài khoản " + accountName + " không đủ để thực hiện giao dịch");
+            }
             return;
         }
+        
+        android.util.Log.d("TransferDetails", "Validation passed - Amount: " + amount + ", Available: " + availableBalance + ", Account Type: " + selectedAccountType);
 
         // KIỂM TRA KHÓA (LOCKOUT)
         if (isLockedOut()) {
@@ -483,40 +520,115 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         }
 
         final DocumentReference senderRef = db.collection("accounts").document(currentUserId);
+        final DocumentReference senderSavingRef = db.collection("savings").document(currentUserId);
+        final DocumentReference senderCreditRef = db.collection("credit_cards").document(currentUserId);
         final boolean isExternalBank = "EXTERNAL_BANK".equals(receiverUid);
         final boolean isSystemService = "SYSTEM_SERVICE".equals(receiverUid);
         final DocumentReference receiverRef = (isExternalBank || isSystemService) ? null : db.collection("accounts").document(receiverUid);
 
         // 2. Thực hiện Transaction trong Firestore
         db.runTransaction((Transaction.Function<Void>) transaction -> {
-            // 1. READ ALL DATA FIRST
-            // Đọc số dư người gửi
-            Double senderBalance = transaction.get(senderRef).getDouble("balance");
-            if (senderBalance == null) senderBalance = 0.0;
-
-            // Đọc số dư người nhận (nếu là internal transfer và không phải system service)
+            // 1. READ ALL DATA FIRST (MUST READ EVERYTHING BEFORE ANY WRITES)
+            DocumentSnapshot paymentSnapshot = transaction.get(senderRef);
+            DocumentSnapshot savingSnapshot = transaction.get(senderSavingRef);
+            DocumentSnapshot creditSnapshot = transaction.get(senderCreditRef);
+            
+            // Read receiver if applicable
+            DocumentSnapshot receiverSnapshot = null;
             Double receiverBalance = 0.0;
+            boolean receiverExists = false;
             if (!isExternalBank && !isSystemService && receiverRef != null) {
-                receiverBalance = transaction.get(receiverRef).getDouble("balance");
-                if (receiverBalance == null) receiverBalance = 0.0;
+                receiverSnapshot = transaction.get(receiverRef);
+                if (receiverSnapshot.exists()) {
+                    receiverExists = true;
+                    receiverBalance = receiverSnapshot.getDouble("balance");
+                    if (receiverBalance == null) receiverBalance = 0.0;
+                }
+            }
+            
+            // Process data based on selected account type
+            Double senderBalance = 0.0;
+            Double senderDebt = 0.0;
+            Double creditLimit = 0.0;
+            boolean needCreateCreditCard = false;
+            boolean needCreateSaving = false;
+            
+            switch (selectedAccountType) {
+                case 0: // Payment Account
+                    if (paymentSnapshot.exists()) {
+                        senderBalance = paymentSnapshot.getDouble("balance");
+                        if (senderBalance == null) senderBalance = 0.0;
+                    } else {
+                        throw new FirebaseFirestoreException("Payment account does not exist", FirebaseFirestoreException.Code.ABORTED);
+                    }
+                    break;
+                case 1: // Saving Account
+                    if (savingSnapshot.exists()) {
+                        senderBalance = savingSnapshot.getDouble("balance");
+                        if (senderBalance == null) senderBalance = 0.0;
+                    } else {
+                        // Saving account not created yet
+                        throw new FirebaseFirestoreException("Saving account does not exist. Please deposit first.", FirebaseFirestoreException.Code.ABORTED);
+                    }
+                    break;
+                case 2: // Credit Card
+                    if (creditSnapshot.exists()) {
+                        senderDebt = creditSnapshot.getDouble("debt");
+                        creditLimit = creditSnapshot.getDouble("credit_limit");
+                        if (senderDebt == null) senderDebt = 0.0;
+                        if (creditLimit == null) creditLimit = 10000000.0; // Default 10 triệu
+                    } else {
+                        // Will create document in write phase
+                        needCreateCreditCard = true;
+                        senderDebt = 0.0;
+                        creditLimit = 10000000.0;
+                    }
+                    senderBalance = creditLimit - senderDebt; // Available credit
+                    break;
             }
 
             // 2. VALIDATE
-            // Kiểm tra số dư
+            // Kiểm tra số dư/hạn mức khả dụng
+            // For Credit card (type 2), senderBalance is creditAvailable which is already validated
+            // For Payment and Saving, check actual balance
             if (senderBalance < amount) {
                 throw new FirebaseFirestoreException("Insufficient funds", FirebaseFirestoreException.Code.ABORTED);
             }
 
             // 3. WRITE ALL DATA
-            // Tính toán số dư mới
-            double newSenderBalance = senderBalance - amount;
+            // Tính toán số dư mới dựa trên loại tài khoản
             double newReceiverBalance = receiverBalance + amount;
-
-            // Update số dư người gửi
-            transaction.update(senderRef, "balance", newSenderBalance);
+            
+            // Update số dư người gửi dựa trên loại tài khoản
+            switch (selectedAccountType) {
+                case 0: // Payment Account - deduct from balance
+                    double newPaymentBalance = senderBalance - amount;
+                    transaction.update(senderRef, "balance", newPaymentBalance);
+                    break;
+                case 1: // Saving Account - deduct from saving balance
+                    double newSavingBalance = senderBalance - amount;
+                    transaction.update(senderSavingRef, "balance", newSavingBalance);
+                    break;
+                case 2: // Credit Card - increase debt
+                    double newDebt = senderDebt + amount;
+                    if (needCreateCreditCard) {
+                        // Create new document with initial debt
+                        Map<String, Object> creditData = new HashMap<>();
+                        creditData.put("user_id", currentUserId);
+                        creditData.put("credit_limit", creditLimit);
+                        creditData.put("debt", newDebt); // Set debt with transaction amount
+                        creditData.put("interest_rate", 0.18);
+                        transaction.set(senderCreditRef, creditData);
+                        android.util.Log.d("TransferDetails", "Created new credit card with limit: " + creditLimit + ", initial debt: " + newDebt);
+                    } else {
+                        // Update existing document
+                        transaction.update(senderCreditRef, "debt", newDebt);
+                    }
+                    break;
+            }
 
             // Update số dư người nhận (chỉ nếu là internal transfer và không phải system service)
-            if (!isExternalBank && !isSystemService && receiverRef != null) {
+            if (!isExternalBank && !isSystemService && receiverRef != null && receiverExists) {
                 transaction.update(receiverRef, "balance", newReceiverBalance);
             }
 
@@ -532,8 +644,24 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             senderLog.put("relatedAccountName", receiverName);
             senderLog.put("relatedAccountNumber", receiverAccountNumber);
             senderLog.put("transactionId", transId);
+            senderLog.put("sourceAccountType", selectedAccountType); // 0: Payment, 1: Saving, 2: Credit
 
-            DocumentReference senderLogRef = senderRef.collection("transactions").document(transId);
+            // Chọn đúng collection để ghi log dựa trên account type
+            DocumentReference senderLogRef;
+            switch (selectedAccountType) {
+                case 0: // Payment Account
+                    senderLogRef = senderRef.collection("transactions").document(transId);
+                    break;
+                case 1: // Saving Account
+                    senderLogRef = senderSavingRef.collection("transactions").document(transId);
+                    break;
+                case 2: // Credit Card
+                    senderLogRef = senderCreditRef.collection("transactions").document(transId);
+                    break;
+                default:
+                    senderLogRef = senderRef.collection("transactions").document(transId);
+                    break;
+            }
             transaction.set(senderLogRef, senderLog);
 
             // Chỉ ghi lịch sử cho người nhận nếu là internal transfer và không phải system service
@@ -810,44 +938,92 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         // Dùng Tasks.whenAll để đợi cả 2 việc: Lấy Profile (SĐT) và Lấy Số Dư
         DocumentReference userRef = db.collection("users").document(currentUserId);
         DocumentReference accRef = db.collection("accounts").document(currentUserId);
+        DocumentReference savingRef = db.collection("savings").document(currentUserId);
+        DocumentReference creditRef = db.collection("credit_cards").document(currentUserId);
 
-        // Chạy song song
+        // Chạy song song cả 4 queries
         userRef.get().addOnCompleteListener(taskUser -> {
             accRef.get().addOnCompleteListener(taskAcc -> {
-                setLoading(false); // Tắt loading
+                savingRef.get().addOnCompleteListener(taskSaving -> {
+                    creditRef.get().addOnCompleteListener(taskCredit -> {
+                        setLoading(false); // Tắt loading
 
-                if (taskUser.isSuccessful() && taskAcc.isSuccessful()) {
-                    // 1. Xử lý User Info
-                    DocumentSnapshot userDoc = taskUser.getResult();
-                    if (userDoc != null && userDoc.exists()) {
-                        senderName = userDoc.getString("full_name");
-                        senderPhone = userDoc.getString("phone_number");
+                        if (taskUser.isSuccessful() && taskAcc.isSuccessful()) {
+                            // 1. Xử lý User Info
+                            DocumentSnapshot userDoc = taskUser.getResult();
+                            if (userDoc != null && userDoc.exists()) {
+                                senderName = userDoc.getString("full_name");
+                                senderPhone = userDoc.getString("phone_number");
 
-                        // Auto-fill message nếu cần
-                        if (senderName != null && edtMessage.getText().toString().isEmpty()) {
-                            edtMessage.setText(senderName + " chuyển tiền");
+                                // Auto-fill message nếu cần
+                                if (senderName != null && edtMessage.getText().toString().isEmpty()) {
+                                    edtMessage.setText(senderName + " chuyển tiền");
+                                }
+                            }
+
+                            // 2. Xử lý Payment Account Info
+                            DocumentSnapshot accDoc = taskAcc.getResult();
+                            if (accDoc != null && accDoc.exists()) {
+                                Double balance = accDoc.getDouble("balance");
+                                if (balance != null) {
+                                    currentUserBalance = balance;
+                                    paymentBalance = balance;
+                                }
+                            }
+
+                            // 3. Xử lý Saving Account Info
+                            if (taskSaving.isSuccessful()) {
+                                DocumentSnapshot savingDoc = taskSaving.getResult();
+                                if (savingDoc != null && savingDoc.exists()) {
+                                    Double balance = savingDoc.getDouble("balance");
+                                    if (balance != null) savingBalance = balance;
+                                }
+                            }
+
+                            // 4. Xử lý Credit Card Info
+                            if (taskCredit.isSuccessful()) {
+                                DocumentSnapshot creditDoc = taskCredit.getResult();
+                                if (creditDoc != null && creditDoc.exists()) {
+                                    Double limit = creditDoc.getDouble("credit_limit");
+                                    Double debt = creditDoc.getDouble("debt");
+                                    android.util.Log.d("TransferDetails", "Credit Card exists - Limit: " + limit + ", Debt: " + debt);
+                                    
+                                    if (limit != null) {
+                                        if (debt == null) debt = 0.0;
+                                        creditAvailable = limit - debt;
+                                        android.util.Log.d("TransferDetails", "Credit Available calculated: " + creditAvailable);
+                                    } else {
+                                        // Default credit limit nếu null
+                                        creditAvailable = 10000000.0;
+                                        android.util.Log.w("TransferDetails", "Credit limit is null, using default: 10,000,000");
+                                    }
+                                } else {
+                                    // Nếu document không tồn tại, sử dụng hạn mức mặc định
+                                    creditAvailable = 10000000.0;
+                                    android.util.Log.d("TransferDetails", "Credit card document does not exist, using default available: 10,000,000");
+                                }
+                            } else {
+                                android.util.Log.e("TransferDetails", "Failed to fetch credit card info: " + taskCredit.getException());
+                                creditAvailable = 0.0;
+                            }
+
+                            // 5. Load account options to spinner
+                            loadAccountOptions();
+
+                            // 6. Kiểm tra điều kiện để mở nút Transfer
+                            if (senderPhone != null && !senderPhone.isEmpty()) {
+                                isSenderInfoLoaded = true;
+                                btnTransfer.setEnabled(true);
+                                edtAmount.setEnabled(true);
+                                edtMessage.setEnabled(true);
+                            } else {
+                                Toast.makeText(this, "Lỗi: Tài khoản chưa cập nhật số điện thoại (bắt buộc để nhận OTP).", Toast.LENGTH_LONG).show();
+                            }
+                        } else {
+                            Toast.makeText(this, "Không thể lấy thông tin tài khoản. Vui lòng thử lại.", Toast.LENGTH_SHORT).show();
                         }
-                    }
-
-                    // 2. Xử lý Account Info
-                    DocumentSnapshot accDoc = taskAcc.getResult();
-                    if (accDoc != null && accDoc.exists()) {
-                        Double balance = accDoc.getDouble("balance");
-                        if (balance != null) currentUserBalance = balance;
-                    }
-
-                    // 3. Kiểm tra điều kiện để mở nút Transfer
-                    if (senderPhone != null && !senderPhone.isEmpty()) {
-                        isSenderInfoLoaded = true;
-                        btnTransfer.setEnabled(true);
-                        edtAmount.setEnabled(true);
-                        edtMessage.setEnabled(true);
-                    } else {
-                        Toast.makeText(this, "Lỗi: Tài khoản chưa cập nhật số điện thoại (bắt buộc để nhận OTP).", Toast.LENGTH_LONG).show();
-                    }
-                } else {
-                    Toast.makeText(this, "Không thể lấy thông tin tài khoản. Vui lòng thử lại.", Toast.LENGTH_SHORT).show();
-                }
+                    });
+                });
             });
         });
     }
@@ -936,6 +1112,45 @@ public class TransferDetailsActivity extends AppCompatActivity implements
                 tvSuggest3.setText(formatMoney(s3));
             }
         }
+    }
+
+    private void loadAccountOptions() {
+        accountOptions.clear();
+        
+        // 0: Payment Account
+        accountOptions.add("TK Thanh toán - " + formatMoney(paymentBalance) + " VNĐ");
+        
+        // 1: Saving Account
+        accountOptions.add("TK Tiết kiệm - " + formatMoney(savingBalance) + " VNĐ");
+        
+        // 2: Credit Card
+        accountOptions.add("Thẻ Credit - " + formatMoney(creditAvailable) + " VNĐ khả dụng");
+        
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+            this,
+            android.R.layout.simple_spinner_item,
+            accountOptions
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerSourceAccount.setAdapter(adapter);
+        
+        // Set default selection to Payment account
+        spinnerSourceAccount.setSelection(0);
+        selectedAccountType = 0;
+        
+        // Handle spinner selection
+        spinnerSourceAccount.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                selectedAccountType = position;
+                android.util.Log.d("TransferDetails", "Selected account type: " + selectedAccountType + " - " + accountOptions.get(position));
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                selectedAccountType = 0; // Default to Payment account
+            }
+        });
     }
 
     private String formatMoney(double amount) {

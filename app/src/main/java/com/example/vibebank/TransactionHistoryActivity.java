@@ -24,6 +24,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -193,36 +194,47 @@ public class TransactionHistoryActivity extends AppCompatActivity {
 
         swipeRefresh.setRefreshing(true);
 
-        // Truy vấn vào sub-collection "transactions" của account
-        db.collection("accounts").document(currentUserId)
+        allTransactions.clear();
+
+        // Đọc transactions từ cả 3 collections: accounts, savings, credit_cards
+        com.google.android.gms.tasks.Task<QuerySnapshot> accountTask = 
+            db.collection("accounts").document(currentUserId)
                 .collection("transactions")
-                .orderBy("timestamp", Query.Direction.DESCENDING) // Sắp xếp mới nhất trước
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    allTransactions.clear();
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get();
+        
+        com.google.android.gms.tasks.Task<QuerySnapshot> savingTask = 
+            db.collection("savings").document(currentUserId)
+                .collection("transactions")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get();
+        
+        com.google.android.gms.tasks.Task<QuerySnapshot> creditTask = 
+            db.collection("credit_cards").document(currentUserId)
+                .collection("transactions")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get();
 
-                    for (DocumentSnapshot doc : queryDocumentSnapshots) {
-                        try {
-                            String type = doc.getString("type"); // "SENT" hoặc "RECEIVED"
-                            Double amount = doc.getDouble("amount");
-                            String content = doc.getString("content");
-                            String relatedName = doc.getString("relatedAccountName");
-                            Timestamp timestamp = doc.getTimestamp("timestamp");
-
-                            if (amount != null && type != null) {
-                                allTransactions.add(new Transaction(
-                                        relatedName != null ? relatedName : "Giao dịch",
-                                        content != null ? content : "",
-                                        amount.longValue(),
-                                        "RECEIVED".equals(type), // isIncome nếu type là RECEIVED
-                                        timestamp != null ? timestamp.toDate() : new Date(),
-                                        type
-                                ));
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+        // Đợi cả 3 tasks hoàn thành
+        com.google.android.gms.tasks.Tasks.whenAllComplete(accountTask, savingTask, creditTask)
+                .addOnSuccessListener(tasks -> {
+                    // Process account transactions
+                    if (accountTask.isSuccessful() && accountTask.getResult() != null) {
+                        processTransactions(accountTask.getResult());
                     }
+                    
+                    // Process saving transactions
+                    if (savingTask.isSuccessful() && savingTask.getResult() != null) {
+                        processTransactions(savingTask.getResult());
+                    }
+                    
+                    // Process credit transactions
+                    if (creditTask.isSuccessful() && creditTask.getResult() != null) {
+                        processTransactions(creditTask.getResult());
+                    }
+
+                    // Sort tất cả transactions theo timestamp (mới nhất trước)
+                    java.util.Collections.sort(allTransactions, (t1, t2) -> t2.getDate().compareTo(t1.getDate()));
 
                     // Sau khi tải xong thì lọc và hiển thị
                     filterTransactions();
@@ -232,6 +244,32 @@ public class TransactionHistoryActivity extends AppCompatActivity {
                     Toast.makeText(this, "Lỗi tải dữ liệu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     swipeRefresh.setRefreshing(false);
                 });
+    }
+
+    // Helper method to process transactions from a query result
+    private void processTransactions(QuerySnapshot queryDocumentSnapshots) {
+        for (DocumentSnapshot doc : queryDocumentSnapshots) {
+            try {
+                String type = doc.getString("type"); // "SENT" hoặc "RECEIVED"
+                Double amount = doc.getDouble("amount");
+                String content = doc.getString("content");
+                String relatedName = doc.getString("relatedAccountName");
+                Timestamp timestamp = doc.getTimestamp("timestamp");
+
+                if (amount != null && type != null) {
+                    allTransactions.add(new Transaction(
+                            relatedName != null ? relatedName : "Giao dịch",
+                            content != null ? content : "",
+                            amount.longValue(),
+                            "RECEIVED".equals(type), // isIncome nếu type là RECEIVED
+                            timestamp != null ? timestamp.toDate() : new Date(),
+                            type
+                    ));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     // Logic lọc trung tâm: Lọc theo Thời gian, Loại, và Tìm kiếm cùng lúc
