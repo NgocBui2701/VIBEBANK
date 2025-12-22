@@ -177,6 +177,9 @@
         <activity
             android:name=".BranchMapActivity"
             android:exported="false" />
+        <activity
+            android:name=".BranchListActivity"
+            android:exported="false" />
         
         <!-- Topup Options Activity -->
         <activity
