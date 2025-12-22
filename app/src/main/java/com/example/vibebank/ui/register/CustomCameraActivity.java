@@ -31,6 +31,7 @@ public class CustomCameraActivity extends AppCompatActivity {
     private TextView tvInstruction;
     private ImageCapture imageCapture;
     private ExecutorService cameraExecutor;
+    private boolean useFrontCamera = false; // Mặc định dùng camera sau
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,10 +42,16 @@ public class CustomCameraActivity extends AppCompatActivity {
         btnCapture = findViewById(R.id.btnCapture);
         tvInstruction = findViewById(R.id.tvInstruction);
 
-        // Lấy hướng dẫn từ Intent (Chụp mặt trước hay sau)
+        // Lấy hướng dẫn từ Intent
         String type = getIntent().getStringExtra("TYPE");
+        useFrontCamera = getIntent().getBooleanExtra("USE_FRONT_CAMERA", false);
+        
         if(type != null) {
-            tvInstruction.setText("Chụp " + type + " CCCD");
+            if (type.contains("KHUÔN MẶT")) {
+                tvInstruction.setText("Chụp " + type);
+            } else {
+                tvInstruction.setText("Chụp " + type + " CCCD");
+            }
         }
 
         cameraExecutor = Executors.newSingleThreadExecutor();
@@ -67,8 +74,10 @@ public class CustomCameraActivity extends AppCompatActivity {
                 // Cấu hình Chụp ảnh
                 imageCapture = new ImageCapture.Builder().build();
 
-                // Chọn Camera sau
-                CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
+                // Chọn Camera (trước hoặc sau tùy intent)
+                CameraSelector cameraSelector = useFrontCamera ? 
+                        CameraSelector.DEFAULT_FRONT_CAMERA : 
+                        CameraSelector.DEFAULT_BACK_CAMERA;
 
                 try {
                     cameraProvider.unbindAll();

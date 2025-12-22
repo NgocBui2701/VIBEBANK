@@ -1,11 +1,13 @@
 package com.example.vibebank.staff;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Uri;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -16,11 +18,14 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 
 import com.cloudinary.android.MediaManager;
 import com.cloudinary.android.callback.ErrorInfo;
 import com.cloudinary.android.callback.UploadCallback;
 import com.example.vibebank.R;
+import com.example.vibebank.ui.register.CustomCameraActivity;
+import com.example.vibebank.ui.register.RegisterFaceAuthActivity;
 import com.example.vibebank.utils.CloudinaryHelper;
 import com.example.vibebank.utils.PasswordUtils;
 import com.google.android.material.button.MaterialButton;
@@ -31,7 +36,7 @@ import com.google.firebase.firestore.WriteBatch;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.InputStream;
+import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -51,8 +56,18 @@ public class CreateCustomerActivity extends AppCompatActivity {
     private String frontIdPath, backIdPath, facePath;
     private String frontIdUrl, backIdUrl, faceUrl;
     
-    // Upload type
-    private String currentUploadType = ""; // "front", "back", "face"
+    // Current capture type
+    private boolean isCapturingFront = true; // true: front, false: back
+    
+    // Request permission launcher
+    private final ActivityResultLauncher<String> requestCameraPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    openCustomCamera();
+                } else {
+                    Toast.makeText(this, "Cần quyền Camera để chụp ảnh", Toast.LENGTH_SHORT).show();
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,76 +107,131 @@ public class CreateCustomerActivity extends AppCompatActivity {
     private void setupListeners() {
         btnBack.setOnClickListener(v -> finish());
         
+        // Chụp CCCD mặt trước - Dùng CustomCameraActivity (giống Register3)
         cardFrontId.setOnClickListener(v -> {
-            currentUploadType = "front";
-            cameraLauncher.launch(new Intent(MediaStore.ACTION_IMAGE_CAPTURE));
+            isCapturingFront = true;
+            checkCameraPermissionAndOpen();
         });
         
+        // Chụp CCCD mặt sau - Dùng CustomCameraActivity (giống Register3)
         cardBackId.setOnClickListener(v -> {
-            currentUploadType = "back";
-            cameraLauncher.launch(new Intent(MediaStore.ACTION_IMAGE_CAPTURE));
+            isCapturingFront = false;
+            checkCameraPermissionAndOpen();
         });
         
+        // Chụp khuôn mặt - Dùng CustomCameraActivity với camera trước
         cardFace.setOnClickListener(v -> {
-            currentUploadType = "face";
-            cameraLauncher.launch(new Intent(MediaStore.ACTION_IMAGE_CAPTURE));
+            Intent intent = new Intent(this, CustomCameraActivity.class);
+            intent.putExtra("TYPE", "KHUÔN MẶT");
+            intent.putExtra("USE_FRONT_CAMERA", true); // Camera trước
+            faceCameraLauncher.launch(intent);
         });
         
         btnCreate.setOnClickListener(v -> createCustomer());
     }
     
-    private final ActivityResultLauncher<Intent> cameraLauncher = registerForActivityResult(
+    private void checkCameraPermissionAndOpen() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) 
+                == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            openCustomCamera();
+        } else {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+        }
+    }
+    
+    private void openCustomCamera() {
+        Intent intent = new Intent(this, CustomCameraActivity.class);
+        intent.putExtra("TYPE", isCapturingFront ? "MẶT TRƯỚC" : "MẶT SAU");
+        customCameraLauncher.launch(intent);
+    }
+    
+    // Launcher cho CCCD (camera sau)
+    private final ActivityResultLauncher<Intent> customCameraLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    Bundle extras = result.getData().getExtras();
-                    if (extras != null) {
-                        Bitmap imageBitmap = (Bitmap) extras.get("data");
-                        if (imageBitmap != null) {
-                            handleCapturedImage(imageBitmap);
-                        }
+                    String path = result.getData().getStringExtra("IMAGE_PATH");
+                    if (path != null) {
+                        processCapturedImage(path);
                     }
                 }
             }
     );
     
-    private void handleCapturedImage(Bitmap bitmap) {
+    // Launcher cho khuôn mặt (camera trước)
+    private final ActivityResultLauncher<Intent> faceCameraLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    String path = result.getData().getStringExtra("IMAGE_PATH");
+                    if (path != null) {
+                        processFaceImage(path);
+                    }
+                }
+            }
+    );
+    
+    private void processCapturedImage(String path) {
         try {
-            // Save bitmap to temp file
-            File tempFile = new File(getCacheDir(), currentUploadType + "_" + System.currentTimeMillis() + ".jpg");
-            FileOutputStream fos = new FileOutputStream(tempFile);
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos);
-            fos.close();
+            // Xử lý xoay ảnh (giống Register3)
+            Bitmap bitmap = BitmapFactory.decodeFile(path);
+            bitmap = rotateImageIfRequired(bitmap, path);
             
-            String filePath = tempFile.getAbsolutePath();
-            
-            // Update UI
-            switch (currentUploadType) {
-                case "front":
-                    frontIdPath = filePath;
-                    imgFrontId.setImageBitmap(bitmap);
-                    imgFrontId.setAlpha(1.0f);
-                    tvFrontIdStatus.setText("✓ Đã chụp");
-                    tvFrontIdStatus.setTextColor(getColor(R.color.success));
-                    break;
-                case "back":
-                    backIdPath = filePath;
-                    imgBackId.setImageBitmap(bitmap);
-                    imgBackId.setAlpha(1.0f);
-                    tvBackIdStatus.setText("✓ Đã chụp");
-                    tvBackIdStatus.setTextColor(getColor(R.color.success));
-                    break;
-                case "face":
-                    facePath = filePath;
-                    imgFace.setImageBitmap(bitmap);
-                    imgFace.setAlpha(1.0f);
-                    tvFaceStatus.setText("✓ Đã chụp");
-                    tvFaceStatus.setTextColor(getColor(R.color.success));
-                    break;
+            if (isCapturingFront) {
+                frontIdPath = path;
+                imgFrontId.setImageBitmap(bitmap);
+                imgFrontId.setAlpha(1.0f);
+                tvFrontIdStatus.setText("✓ Đã chụp");
+                tvFrontIdStatus.setTextColor(getColor(R.color.success));
+            } else {
+                backIdPath = path;
+                imgBackId.setImageBitmap(bitmap);
+                imgBackId.setAlpha(1.0f);
+                tvBackIdStatus.setText("✓ Đã chụp");
+                tvBackIdStatus.setTextColor(getColor(R.color.success));
             }
             
         } catch (Exception e) {
-            Toast.makeText(this, "Lỗi lưu ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Lỗi xử lý ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    // Xử lý xoay ảnh (copy từ Register3Activity)
+    private Bitmap rotateImageIfRequired(Bitmap img, String selectedImage) throws IOException {
+        ExifInterface ei = new ExifInterface(selectedImage);
+        int orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                return rotateImage(img, 90);
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                return rotateImage(img, 180);
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                return rotateImage(img, 270);
+            default:
+                return img;
+        }
+    }
+
+    private Bitmap rotateImage(Bitmap source, float angle) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
+    }
+    
+    private void processFaceImage(String path) {
+        try {
+            Bitmap bitmap = BitmapFactory.decodeFile(path);
+            bitmap = rotateImageIfRequired(bitmap, path);
+            
+            facePath = path;
+            imgFace.setImageBitmap(bitmap);
+            imgFace.setAlpha(1.0f);
+            tvFaceStatus.setText("✓ Đã chụp");
+            tvFaceStatus.setTextColor(getColor(R.color.success));
+            
+        } catch (Exception e) {
+            Toast.makeText(this, "Lỗi xử lý ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 

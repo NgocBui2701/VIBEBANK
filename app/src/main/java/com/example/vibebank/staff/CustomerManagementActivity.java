@@ -7,6 +7,8 @@ import android.text.TextWatcher;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -164,7 +166,7 @@ public class CustomerManagementActivity extends AppCompatActivity
                 })
                 .addOnFailureListener(e -> {
                     swipeRefresh.setRefreshing(false);
-                    Toast.makeText(this, "Lỗi tải dữ liệu: " + e.getMessage(), 
+                    Toast.makeText(this, "Lỗi tải dữ liệu: " + e.getMessage(),
                             Toast.LENGTH_SHORT).show();
                 });
     }
