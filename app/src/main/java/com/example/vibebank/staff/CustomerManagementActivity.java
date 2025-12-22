@@ -39,6 +39,7 @@ public class CustomerManagementActivity extends AppCompatActivity
     private SwipeRefreshLayout swipeRefresh;
     private LinearLayout layoutEmpty;
     private ImageView btnBack;
+    private TextView tvResultCount;
 
     private FirebaseFirestore db;
     private String currentFilter = "ALL"; // ALL, PENDING, VERIFIED
@@ -69,6 +70,7 @@ public class CustomerManagementActivity extends AppCompatActivity
         swipeRefresh = findViewById(R.id.swipeRefresh);
         layoutEmpty = findViewById(R.id.layoutEmpty);
         btnBack = findViewById(R.id.btnBack);
+        tvResultCount = findViewById(R.id.tvResultCount);
     }
 
     private void setupRecyclerView() {
@@ -125,23 +127,45 @@ public class CustomerManagementActivity extends AppCompatActivity
         allCustomers.clear();
         balanceCache.clear();
 
-        // Load all customers (users with role = customer)
+        // Load ALL users (không filter role để nhân viên xem được toàn bộ)
         db.collection("users")
-                .whereEqualTo("role", "customer")
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
+                    int totalUsers = querySnapshot.size();
+                    int processedUsers = 0;
+                    
+                    if (totalUsers == 0) {
+                        swipeRefresh.setRefreshing(false);
+                        filterCustomers();
+                        return;
+                    }
+                    
                     for (DocumentSnapshot userDoc : querySnapshot.getDocuments()) {
                         String userId = userDoc.getId();
                         String fullName = userDoc.getString("full_name");
                         String phone = userDoc.getString("phone_number");
                         String email = userDoc.getString("email");
-
-                        // Load KYC status
-                        loadCustomerKycAndBalance(userId, fullName, phone, email);
+                        String role = userDoc.getString("role");
+                        
+                        // Chỉ load khách hàng (bỏ qua staff)
+                        if (!"staff".equals(role)) {
+                            // Load KYC status
+                            loadCustomerKycAndBalance(userId, fullName, phone, email);
+                        }
                     }
+                    
+                    // Set timeout để tắt refresh nếu không có data
+                    new android.os.Handler().postDelayed(() -> {
+                        if (swipeRefresh.isRefreshing()) {
+                            swipeRefresh.setRefreshing(false);
+                            filterCustomers();
+                        }
+                    }, 3000);
                 })
                 .addOnFailureListener(e -> {
                     swipeRefresh.setRefreshing(false);
+                    Toast.makeText(this, "Lỗi tải dữ liệu: " + e.getMessage(), 
+                            Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -199,13 +223,21 @@ public class CustomerManagementActivity extends AppCompatActivity
                 }
             }
 
-            // Filter by search query
+            // Filter by search query - TÌM KIẾM TOÀN DIỆN
             if (!currentSearchQuery.isEmpty()) {
-                boolean matchName = customer.getFullName().toLowerCase().contains(currentSearchQuery);
-                boolean matchPhone = customer.getPhoneNumber().toLowerCase().contains(currentSearchQuery);
-                boolean matchAccount = customer.getAccountNumber().toLowerCase().contains(currentSearchQuery);
+                String name = customer.getFullName() != null ? customer.getFullName().toLowerCase() : "";
+                String phone = customer.getPhoneNumber() != null ? customer.getPhoneNumber().toLowerCase() : "";
+                String account = customer.getAccountNumber() != null ? customer.getAccountNumber().toLowerCase() : "";
+                String email = customer.getEmail() != null ? customer.getEmail().toLowerCase() : "";
+                String userId = customer.getUserId() != null ? customer.getUserId().toLowerCase() : "";
+                
+                boolean matchName = name.contains(currentSearchQuery);
+                boolean matchPhone = phone.contains(currentSearchQuery);
+                boolean matchAccount = account.contains(currentSearchQuery);
+                boolean matchEmail = email.contains(currentSearchQuery);
+                boolean matchUserId = userId.contains(currentSearchQuery);
 
-                if (!matchName && !matchPhone && !matchAccount) {
+                if (!matchName && !matchPhone && !matchAccount && !matchEmail && !matchUserId) {
                     continue;
                 }
             }
@@ -214,6 +246,13 @@ public class CustomerManagementActivity extends AppCompatActivity
         }
 
         adapter.updateCustomers(displayCustomers);
+
+        // Update result count
+        if (tvResultCount != null) {
+            String filterText = currentFilter.equals("ALL") ? "" : 
+                               currentFilter.equals("PENDING") ? " (chờ duyệt)" : " (đã xác minh)";
+            tvResultCount.setText("Tìm thấy " + displayCustomers.size() + " khách hàng" + filterText);
+        }
 
         // Show/Hide empty state
         if (displayCustomers.isEmpty()) {
