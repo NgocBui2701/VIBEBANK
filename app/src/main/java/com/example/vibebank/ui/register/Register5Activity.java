@@ -6,6 +6,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.lifecycle.ViewModelProvider;
 
@@ -100,6 +101,7 @@ public class Register5Activity extends BaseActivity {
                 showErrorDialog("Đã xảy ra lỗi khi tạo tài khoản");
             }
         });
+        
         viewModel.isLoading.observe(this, isLoading -> {
             if (isLoading) {
                 // Đang tạo: Hiện xoay vòng, ẩn chữ (hoặc giữ chữ), disable nút
@@ -111,6 +113,13 @@ public class Register5Activity extends BaseActivity {
                 progressBar.setVisibility(View.GONE);
                 btnCreateAccount.setEnabled(true);
                 btnCreateAccount.setText("TẠO TÀI KHOẢN");
+            }
+        });
+        
+        // QUAN TRỌNG: Observe toastMessage để hiển thị lỗi chi tiết
+        viewModel.toastMessage.observe(this, message -> {
+            if (message != null && !message.isEmpty()) {
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
             }
         });
     }
