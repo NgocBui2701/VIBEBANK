@@ -291,7 +291,19 @@ public class LoginActivity extends BaseActivity implements
     }
 
     private void navigateToHome() {
-        startActivity(new Intent(this, HomeActivity.class));
+        // Phân quyền theo role: staff hoặc customer
+        String role = viewModel.tempRole;
+        Intent intent;
+        
+        if ("staff".equals(role)) {
+            // Nhân viên → StaffHomeActivity
+            intent = new Intent(this, com.example.vibebank.staff.StaffHomeActivity.class);
+        } else {
+            // Khách hàng → HomeActivity
+            intent = new Intent(this, HomeActivity.class);
+        }
+        
+        startActivity(intent);
         finish();
     }
 }

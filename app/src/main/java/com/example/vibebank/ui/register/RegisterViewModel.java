@@ -222,6 +222,7 @@ public class RegisterViewModel extends ViewModel {
             userMap.put("created_at", new Date());
             userMap.put("avatar_url", "");
             userMap.put("password_hash", PasswordUtils.hashPassword(dataManager.getPassword()));
+            userMap.put("role", "customer"); // Mặc định là khách hàng, admin sẽ đổi thành "staff" nếu cần
 
             // 2. Chuẩn bị KYC Map
             Map<String, Object> kycMap = new HashMap<>();

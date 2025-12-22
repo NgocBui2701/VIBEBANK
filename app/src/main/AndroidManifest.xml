@@ -181,6 +181,29 @@
             android:name=".BranchListActivity"
             android:exported="false" />
         
+        <!-- Staff Activities -->
+        <activity
+            android:name=".staff.StaffHomeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".staff.CustomerManagementActivity"
+            android:exported="false" />
+        <activity
+            android:name=".staff.CustomerDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".staff.CreateCustomerActivity"
+            android:exported="false" />
+        <activity
+            android:name=".staff.EkycVerificationActivity"
+            android:exported="false" />
+        <activity
+            android:name=".staff.TransactionApprovalActivity"
+            android:exported="false" />
+        <activity
+            android:name=".staff.AccountInterestRateActivity"
+            android:exported="false" />
+        
         <!-- Topup Options Activity -->
         <activity
             android:name=".TopupOptionsActivity"

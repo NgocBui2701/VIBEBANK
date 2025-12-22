@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@color/blue_transaction"
+    android:gravity="center">
+
+    <!-- Close Button -->
+    <ImageButton
+        android:id="@+id/btnCloseDrawer"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_gravity="end"
+        android:src="@drawable/ic_close"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Close"
+        app:tint="@color/white"
+        xmlns:app="http://schemas.android.com/apk/res-auto" />
+
+    <!-- Avatar -->
+    <ImageView
+        android:id="@+id/imgStaffNavAvatar"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/ic_avatar_placeholder"
+        android:scaleType="centerCrop"
+        android:background="@drawable/circle_outline_white"
+        android:layout_marginTop="16dp" />
+
+    <!-- Name -->
+    <TextView
+        android:id="@+id/txtStaffNavName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Nhân viên"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:layout_marginTop="12dp" />
+
+    <!-- Role Badge -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="NHÂN VIÊN NGÂN HÀNG"
+        android:textSize="12sp"
+        android:textColor="@color/white"
+        android:background="@drawable/bg_status_badge"
+        android:padding="6dp"
+        android:layout_marginTop="8dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#FFFFFF40"
+        android:layout_marginTop="20dp" />
+
+</LinearLayout>
+

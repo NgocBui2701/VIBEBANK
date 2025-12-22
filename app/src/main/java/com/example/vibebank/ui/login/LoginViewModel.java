@@ -23,6 +23,7 @@ public class LoginViewModel extends ViewModel {
     public String tempUserId = "";
     public String tempFullName = "";
     public String tempPhone = "";
+    public String tempRole = "customer"; // "customer" hoặc "staff"
     public String avatarUrl = "";
     private String authTokenFromApi = "";
 
@@ -53,8 +54,13 @@ public class LoginViewModel extends ViewModel {
                         tempUserId = userDoc.getId();
                         tempFullName = userDoc.getString("full_name");
                         tempPhone = phone;
+                        tempRole = userDoc.getString("role"); // Load role để phân quyền
+                        if (tempRole == null || tempRole.isEmpty()) {
+                            tempRole = "customer"; // Mặc định nếu chưa có role
+                        }
                         avatarUrl = userDoc.getString("avatar_url");
                         Log.d("Login", "login: url ảnh là: " + avatarUrl);
+                        Log.d("Login", "User role: " + tempRole);
 
                         Long lockUntil = userDoc.getLong("lock_until"); // Timestamp
                         long currentTime = System.currentTimeMillis();
