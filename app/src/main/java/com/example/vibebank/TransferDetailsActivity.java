@@ -23,9 +23,12 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.biometric.BiometricPrompt;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 import com.example.vibebank.ui.OtpBottomSheetDialog;
+import com.example.vibebank.utils.BiometricHelper;
 import com.example.vibebank.utils.ElectricBillMockService;
 import com.example.vibebank.utils.FlightTicketMockService;
 import com.example.vibebank.utils.MovieTicketMockService;
@@ -51,6 +54,8 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+
+import javax.crypto.Cipher;
 
 public class TransferDetailsActivity extends AppCompatActivity implements
         PhoneAuthManager.PhoneAuthCallback,
@@ -269,6 +274,14 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         // Kiểm tra đầu vào cơ bản
         String amountStr = edtAmount.getText().toString().replace(".", "");
 
+        // KIỂM TRA KHÓA (LOCKOUT)
+        if (isLockedOut()) {
+            long remainingTime = getRemainingLockoutTime();
+            long minutes = remainingTime / 60000;
+            showErrorDialog("Tài khoản bị tạm khóa chức năng chuyển tiền do nhập sai OTP quá 3 lần. Vui lòng thử lại sau " + (minutes + 1) + " phút.");
+            return;
+        }
+
         if (amountStr.isEmpty()) {
             edtAmount.setError("Vui lòng nhập số tiền");
             return;
@@ -327,20 +340,13 @@ public class TransferDetailsActivity extends AppCompatActivity implements
 
         // Nếu có SĐT thì gửi OTP
         if (senderPhone != null && !senderPhone.isEmpty()) {
-            // Reset OTP verification flag for new transaction
             isOtpVerified = false;
-            android.util.Log.d("TransferDetailsActivity", "✓ Reset OTP verification flag for new transaction");
-            
-            // Disable button to prevent double clicks
             btnTransfer.setEnabled(false);
-            android.util.Log.d("TransferDetailsActivity", "✓ Transfer button disabled");
-            
-            // Show loading
             setLoading(true);
             Toast.makeText(this, "Đang gửi mã OTP...", Toast.LENGTH_SHORT).show();
             phoneAuthManager.sendOtp(senderPhone);
         } else {
-            showErrorDialog("Không tìm thấy số điện thoại xác thực. Vui lòng cập nhật hồ sơ.");
+            showErrorDialog("Không tìm thấy số điện thoại xác thực.");
         }
     }
 
