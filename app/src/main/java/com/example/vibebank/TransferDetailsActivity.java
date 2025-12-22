@@ -87,6 +87,12 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     
     // Flag to prevent duplicate transaction execution
     private boolean isTransactionProcessing = false;
+    
+    // Flag to prevent duplicate navigation to result screen
+    private boolean hasNavigatedToResult = false;
+    
+    // Flag to prevent duplicate OTP verification callback
+    private boolean isOtpVerified = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -235,6 +241,13 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     }
 
     private void preCheckTransfer() {
+        // Prevent starting new transaction if one is already processing
+        if (isTransactionProcessing) {
+            android.util.Log.w("TransferDetailsActivity", "⚠️ Transaction already in progress, ignoring button click");
+            Toast.makeText(this, "Giao dịch đang được xử lý...", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         if (!isSenderInfoLoaded) {
             Toast.makeText(this, "Đang tải thông tin tài khoản. Vui lòng đợi trong giây lát...", Toast.LENGTH_SHORT).show();
             // Tùy chọn: Gọi lại hàm tải dữ liệu nếu bị kẹt
@@ -277,6 +290,14 @@ public class TransferDetailsActivity extends AppCompatActivity implements
 
         // Nếu có SĐT thì gửi OTP
         if (senderPhone != null && !senderPhone.isEmpty()) {
+            // Reset OTP verification flag for new transaction
+            isOtpVerified = false;
+            android.util.Log.d("TransferDetailsActivity", "✓ Reset OTP verification flag for new transaction");
+            
+            // Disable button to prevent double clicks
+            btnTransfer.setEnabled(false);
+            android.util.Log.d("TransferDetailsActivity", "✓ Transfer button disabled");
+            
             // Show loading
             setLoading(true);
             Toast.makeText(this, "Đang gửi mã OTP...", Toast.LENGTH_SHORT).show();
@@ -315,6 +336,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements
                 otpDialog.dismiss();
             }
             setLoading(false);
+            btnTransfer.setEnabled(true);
             showErrorDialog("Bạn đã nhập sai quá 3 lần. Chức năng chuyển tiền bị khóa trong 30 phút.");
         } else {
             editor.putInt(KEY_FAILED_ATTEMPTS, attempts);
@@ -327,6 +349,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements
                     .setMessage("Bạn còn " + remaining + " lần thử.")
                     .setPositiveButton("Thử lại", null)
                     .show();
+            // Keep button enabled so user can try again
         }
     }
 
@@ -339,6 +362,8 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     @Override
     public void onCodeSent() {
         setLoading(false);
+        // Re-enable button in case user wants to cancel and try again
+        btnTransfer.setEnabled(true);
         // OTP đã gửi thành công -> Hiện Dialog nhập
         otpDialog = OtpBottomSheetDialog.newInstance(""); // Truyền sđt nếu muốn hiển thị
         otpDialog.setOtpVerificationListener(this);
@@ -347,6 +372,20 @@ public class TransferDetailsActivity extends AppCompatActivity implements
 
     @Override
     public void onVerificationSuccess() {
+        // CRITICAL: Prevent duplicate Firebase callback execution
+        if (isOtpVerified) {
+            android.util.Log.w("TransferDetailsActivity", "⚠️⚠️⚠️ Firebase callback fired again but OTP already verified - BLOCKING");
+            return;
+        }
+        isOtpVerified = true;
+        android.util.Log.d("TransferDetailsActivity", "✓ OTP verified, flag set to prevent duplicates");
+        
+        // Prevent duplicate callback execution
+        if (isTransactionProcessing) {
+            android.util.Log.w("TransferDetailsActivity", "⚠️ Verification success callback called but transaction already processing");
+            return;
+        }
+        
         // Firebase xác thực thành công OTP
         if (otpDialog != null && otpDialog.isVisible()) {
             otpDialog.dismiss();
@@ -361,6 +400,10 @@ public class TransferDetailsActivity extends AppCompatActivity implements
 
     @Override
     public void onVerificationFailed(String error) {
+        // Re-enable button when verification fails
+        btnTransfer.setEnabled(true);
+        android.util.Log.d("TransferDetailsActivity", "✓ Transfer button re-enabled after verification failure");
+        
         // Lỗi từ Firebase (Code sai, hết hạn...)
         handleFailedAttempt();
     }
@@ -684,6 +727,14 @@ public class TransferDetailsActivity extends AppCompatActivity implements
                 });
             }
 
+            // Prevent duplicate navigation
+            if (hasNavigatedToResult) {
+                android.util.Log.w("TransferDetailsActivity", "⚠️ Already navigated to result screen, preventing duplicate");
+                return;
+            }
+            hasNavigatedToResult = true;
+            android.util.Log.d("TransferDetailsActivity", "✓ Navigating to result screen");
+            
             // For hotel booking, return result directly without going to TransferResultActivity
             boolean isHotelBookingPayment = getIntent().getBooleanExtra("isHotelBookingPayment", false);
             if (isHotelBookingPayment) {
