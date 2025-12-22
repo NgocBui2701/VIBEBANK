@@ -74,10 +74,10 @@ public class CustomerDetailActivity extends AppCompatActivity {
         edtFullName.setText(fullName);
         edtPhone.setText(phone);
         edtEmail.setText(email);
-        tvAccountNumber.setText(accountNumber);
+        tvAccountNumber.setText(accountNumber != null ? accountNumber : phone);
         
-        NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
-        tvBalance.setText(formatter.format(currentBalance) + " VNĐ");
+        // Load lại balance từ Firestore để đảm bảo chính xác
+        loadAccountBalance();
 
         tvKycStatus.setText(getKycStatusDisplay(kycStatus));
         
@@ -89,6 +89,37 @@ public class CustomerDetailActivity extends AppCompatActivity {
         } else {
             tvKycStatus.setBackgroundColor(Color.parseColor("#F44336")); // Red
         }
+    }
+    
+    /**
+     * Load lại số dư từ Firestore để đảm bảo chính xác
+     */
+    private void loadAccountBalance() {
+        if (userId == null || userId.isEmpty()) {
+            NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
+            tvBalance.setText(formatter.format(currentBalance) + " VNĐ");
+            return;
+        }
+        
+        db.collection("accounts").document(userId)
+                .get()
+                .addOnSuccessListener(docSnapshot -> {
+                    if (docSnapshot.exists()) {
+                        Double balance = docSnapshot.getDouble("balance");
+                        currentBalance = balance != null ? balance : 0.0;
+                    } else {
+                        // Document không tồn tại, giữ nguyên giá trị từ Intent
+                        currentBalance = getIntent().getDoubleExtra("balance", 0);
+                    }
+                    
+                    NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
+                    tvBalance.setText(formatter.format(currentBalance) + " VNĐ");
+                })
+                .addOnFailureListener(e -> {
+                    // Lỗi khi load, giữ nguyên giá trị từ Intent
+                    NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
+                    tvBalance.setText(formatter.format(currentBalance) + " VNĐ");
+                });
     }
 
     private String getKycStatusDisplay(String status) {
@@ -210,39 +241,81 @@ public class CustomerDetailActivity extends AppCompatActivity {
      * Nhân viên nạp tiền trực tiếp vào tài khoản khách hàng
      * - Cộng số dư vào accounts/{userId}.balance
      * - Ghi log vào accounts/{userId}/transactions
+     * - Tự động tạo account document nếu chưa tồn tại
      */
     private void depositForCustomer(double amount) {
         DocumentReference accountRef = db.collection("accounts").document(userId);
 
-        db.runTransaction((Transaction.Function<Void>) transaction -> {
-            Double balance = transaction.get(accountRef).getDouble("balance");
-            if (balance == null) balance = 0.0;
+        // Kiểm tra document có tồn tại không trước khi transaction
+        accountRef.get().addOnSuccessListener(docSnapshot -> {
+            if (!docSnapshot.exists()) {
+                // Tạo account document mới nếu chưa tồn tại
+                Map<String, Object> newAccount = new HashMap<>();
+                newAccount.put("account_number", tvAccountNumber.getText().toString());
+                newAccount.put("account_type", "checking");
+                newAccount.put("balance", amount);
+                newAccount.put("created_at", Timestamp.now());
+                
+                accountRef.set(newAccount)
+                    .addOnSuccessListener(aVoid -> {
+                        // Tạo transaction log
+                        String transId = UUID.randomUUID().toString();
+                        Map<String, Object> log = new HashMap<>();
+                        log.put("userId", userId);
+                        log.put("type", "RECEIVED");
+                        log.put("amount", amount);
+                        log.put("content", "Nạp tiền tại quầy bởi nhân viên ngân hàng");
+                        log.put("relatedAccountName", "Giao dịch tại quầy");
+                        log.put("timestamp", Timestamp.now());
+                        log.put("transactionId", transId);
+                        
+                        accountRef.collection("transactions").document(transId).set(log)
+                            .addOnSuccessListener(aVoid2 -> {
+                                currentBalance = amount;
+                                NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
+                                tvBalance.setText(formatter.format(currentBalance) + " VNĐ");
+                                Toast.makeText(this, "Nạp tiền thành công cho khách hàng", Toast.LENGTH_SHORT).show();
+                            });
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Lỗi tạo tài khoản: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    });
+                return;
+            }
 
-            double newBalance = balance + amount;
-            transaction.update(accountRef, "balance", newBalance);
+            // Document đã tồn tại, dùng transaction
+            db.runTransaction((Transaction.Function<Void>) transaction -> {
+                Double balance = transaction.get(accountRef).getDouble("balance");
+                if (balance == null) balance = 0.0;
 
-            // Ghi lịch sử giao dịch
-            String transId = UUID.randomUUID().toString();
-            Map<String, Object> log = new HashMap<>();
-            log.put("userId", userId);
-            log.put("type", "RECEIVED");
-            log.put("amount", amount);
-            log.put("content", "Nạp tiền tại quầy bởi nhân viên ngân hàng");
-            log.put("relatedAccountName", "Giao dịch tại quầy");
-            log.put("timestamp", Timestamp.now());
-            log.put("transactionId", transId);
+                double newBalance = balance + amount;
+                transaction.update(accountRef, "balance", newBalance);
 
-            DocumentReference logRef = accountRef.collection("transactions").document(transId);
-            transaction.set(logRef, log);
+                // Ghi lịch sử giao dịch
+                String transId = UUID.randomUUID().toString();
+                Map<String, Object> log = new HashMap<>();
+                log.put("userId", userId);
+                log.put("type", "RECEIVED");
+                log.put("amount", amount);
+                log.put("content", "Nạp tiền tại quầy bởi nhân viên ngân hàng");
+                log.put("relatedAccountName", "Giao dịch tại quầy");
+                log.put("timestamp", Timestamp.now());
+                log.put("transactionId", transId);
 
-            currentBalance = newBalance;
-            return null;
-        }).addOnSuccessListener(aVoid -> {
-            NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
-            tvBalance.setText(formatter.format(currentBalance) + " VNĐ");
-            Toast.makeText(this, "Nạp tiền thành công cho khách hàng", Toast.LENGTH_SHORT).show();
+                DocumentReference logRef = accountRef.collection("transactions").document(transId);
+                transaction.set(logRef, log);
+
+                currentBalance = newBalance;
+                return null;
+            }).addOnSuccessListener(aVoid -> {
+                NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
+                tvBalance.setText(formatter.format(currentBalance) + " VNĐ");
+                Toast.makeText(this, "Nạp tiền thành công cho khách hàng", Toast.LENGTH_SHORT).show();
+            }).addOnFailureListener(e -> {
+                Toast.makeText(this, "Lỗi nạp tiền: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            });
         }).addOnFailureListener(e -> {
-            Toast.makeText(this, "Lỗi nạp tiền: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Lỗi kiểm tra tài khoản: " + e.getMessage(), Toast.LENGTH_LONG).show();
         });
     }
 }

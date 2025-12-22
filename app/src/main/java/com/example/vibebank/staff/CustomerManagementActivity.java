@@ -193,10 +193,17 @@ public class CustomerManagementActivity extends AppCompatActivity
 
                                 if (accDoc.exists()) {
                                     Double balanceValue = accDoc.getDouble("balance");
-                                    if (balanceValue != null) balance = balanceValue;
+                                    if (balanceValue != null) {
+                                        balance = balanceValue;
+                                    }
 
                                     String accNum = accDoc.getString("account_number");
-                                    if (accNum != null) accountNumber = accNum;
+                                    if (accNum != null && !accNum.isEmpty()) {
+                                        accountNumber = accNum;
+                                    }
+                                } else {
+                                    // Document không tồn tại - có thể tài khoản chưa được tạo đầy đủ
+                                    // Vẫn tạo Customer object với balance = 0
                                 }
 
                                 Customer customer = new Customer(
@@ -204,6 +211,16 @@ public class CustomerManagementActivity extends AppCompatActivity
                                         accountNumber, finalKycStatus, balance
                                 );
 
+                                allCustomers.add(customer);
+                                filterCustomers();
+                                swipeRefresh.setRefreshing(false);
+                            })
+                            .addOnFailureListener(e -> {
+                                // Lỗi khi load account, vẫn tạo Customer với balance = 0
+                                Customer customer = new Customer(
+                                        userId, fullName, phone, email,
+                                        phone, finalKycStatus, 0
+                                );
                                 allCustomers.add(customer);
                                 filterCustomers();
                                 swipeRefresh.setRefreshing(false);
