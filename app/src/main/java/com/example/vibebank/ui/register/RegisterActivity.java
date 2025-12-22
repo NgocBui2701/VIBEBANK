@@ -31,7 +31,7 @@ public class RegisterActivity extends BaseActivity {
             public void onCodeSent() {
                 // Đã gửi tin nhắn xong -> Hiện Dialog nhập OTP
                 btnNext.setEnabled(true);
-                btnNext.setText("Tiếp tục");
+                btnNext.setText("TIẾP THEO");
                 showOtpDialog();
             }
 
@@ -53,7 +53,7 @@ public class RegisterActivity extends BaseActivity {
             public void onVerificationFailed(String error) {
                 // Có lỗi xảy ra (Sai OTP, Lỗi mạng...)
                 btnNext.setEnabled(true);
-                btnNext.setText("Tiếp tục");
+                btnNext.setText("TIẾP THEO");
                 showErrorDialog(error);
             }
         });
@@ -139,7 +139,7 @@ public class RegisterActivity extends BaseActivity {
                 phoneAuthManager.sendOtp(currentPhoneNumber);
 
                 btnNext.setEnabled(true);
-                btnNext.setText("Tiếp tục");
+                btnNext.setText("TIẾP THEO");
             } else {
                 if ("EMAIL".equals(result.errorField)) {
                     edtEmail.setError(result.errorMsg);

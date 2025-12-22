@@ -2,7 +2,9 @@ package com.example.vibebank.ui.register;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.lifecycle.ViewModelProvider;
@@ -11,6 +13,7 @@ import com.example.vibebank.R;
 import com.example.vibebank.ui.base.BaseActivity;
 import com.example.vibebank.ui.forgotpassword.ResetPasswordActivity;
 import com.example.vibebank.ui.login.LoginActivity;
+import com.example.vibebank.utils.CloudinaryHelper;
 import com.example.vibebank.utils.PasswordValidationHelper;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -22,6 +25,7 @@ public class Register5Activity extends BaseActivity {
     private MaterialButton btnCreateAccount;
     private TextInputEditText edtUsername, edtPassword, edtConfirmPassword;
     private TextView tvRuleLength, tvRuleUpperLower, tvRuleDigit, tvRuleSpecial;
+    private ProgressBar progressBar;
 
     private RegisterViewModel viewModel;
     private PasswordValidationHelper passwordHelper;
@@ -30,6 +34,8 @@ public class Register5Activity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register5);
+
+        CloudinaryHelper.initCloudinary(this);
 
         viewModel = new ViewModelProvider(this).get(RegisterViewModel.class);
 
@@ -56,6 +62,7 @@ public class Register5Activity extends BaseActivity {
         edtUsername = findViewById(R.id.edtUsername);
         edtPassword = findViewById(R.id.edtPassword);
         edtConfirmPassword = findViewById(R.id.edtConfirmPassword);
+        progressBar = findViewById(R.id.progressBar);
 
         tvRuleLength = findViewById(R.id.tvRuleLength);
         tvRuleUpperLower = findViewById(R.id.tvRuleUpperLower);
@@ -91,6 +98,19 @@ public class Register5Activity extends BaseActivity {
                 showSuccessDialog();
             } else {
                 showErrorDialog("Đã xảy ra lỗi khi tạo tài khoản");
+            }
+        });
+        viewModel.isLoading.observe(this, isLoading -> {
+            if (isLoading) {
+                // Đang tạo: Hiện xoay vòng, ẩn chữ (hoặc giữ chữ), disable nút
+                progressBar.setVisibility(View.VISIBLE);
+                btnCreateAccount.setEnabled(false);
+                btnCreateAccount.setText(""); // Mẹo: Xóa chữ để chỉ hiện vòng xoay cho đẹp
+            } else {
+                // Xong/Lỗi: Ẩn xoay vòng, hiện lại chữ, enable nút
+                progressBar.setVisibility(View.GONE);
+                btnCreateAccount.setEnabled(true);
+                btnCreateAccount.setText("TẠO TÀI KHOẢN");
             }
         });
     }
