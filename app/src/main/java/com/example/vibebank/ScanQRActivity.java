@@ -342,28 +342,34 @@ public class ScanQRActivity extends AppCompatActivity {
         }
 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        
-        db.collection("users")
+
+        // IMPORTANT:
+        // - account_number được lưu trong collection "accounts" (xem RegisterViewModel, TransferEnterAccountActivity)
+        // - ID document trong "accounts" CHÍNH LÀ userId
+        // Trước đây hàm này query sang "users" + tạo userId giả "VIBEBANK_xxx" nếu không tìm thấy,
+        // dẫn tới giao dịch ghi vào sai userId => người nhận không thấy số dư & lịch sử.
+        //
+        // Sửa lại: luôn truy vấn "accounts" theo account_number và dùng documentId làm receiverUserId.
+        db.collection("accounts")
                 .whereEqualTo("account_number", accountNumber)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
-                    String userId = null;
                     if (!querySnapshot.isEmpty()) {
-                        userId = querySnapshot.getDocuments().get(0).getId();
+                        // Lấy đúng userId thật từ documentId trong "accounts"
+                        String userId = querySnapshot.getDocuments().get(0).getId();
+                        intent.putExtra("receiverUserId", userId);
+                    } else {
+                        // Không tìm thấy tài khoản nội bộ -> coi như ngân hàng ngoài,
+                        // không gán receiverUserId để tránh tạo userId ảo làm lệch dữ liệu.
+                        intent.putExtra("receiverUserId", "EXTERNAL_BANK");
                     }
-                    
-                    // Use placeholder if userId not found
-                    if (userId == null) {
-                        userId = "VIBEBANK_" + accountNumber;
-                    }
-                    
-                    intent.putExtra("receiverUserId", userId);
+
                     startActivity(intent);
                     finish();
                 })
                 .addOnFailureListener(e -> {
-                    // Still navigate with placeholder userId
-                    intent.putExtra("receiverUserId", "VIBEBANK_" + accountNumber);
+                    // Nếu lỗi khi query, fallback sang coi như ngân hàng ngoài
+                    intent.putExtra("receiverUserId", "EXTERNAL_BANK");
                     startActivity(intent);
                     finish();
                 });
