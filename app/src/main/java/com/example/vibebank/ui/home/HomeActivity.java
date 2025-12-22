@@ -398,6 +398,12 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapView.onCreate(mapViewBundle);
         mapView.getMapAsync(this);
 
+        // Click on map to open full-screen BranchMapActivity
+        mapView.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, com.example.vibebank.BranchMapActivity.class);
+            startActivity(intent);
+        });
+
         // Fix lỗi cuộn trang khi chạm vào map
         mapView.setOnTouchListener((v, event) -> {
             int action = event.getAction();
@@ -408,6 +414,9 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                     return false;
                 case MotionEvent.ACTION_UP:
                     scrollView.requestDisallowInterceptTouchEvent(false);
+                    // Open BranchMapActivity on tap
+                    Intent intent = new Intent(HomeActivity.this, com.example.vibebank.BranchMapActivity.class);
+                    startActivity(intent);
                     return true;
                 default:
                     return true;
