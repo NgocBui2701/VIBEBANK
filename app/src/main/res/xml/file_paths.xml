@@ -6,6 +6,9 @@
     <!-- Cache directory for temporary files -->
     <cache-path name="cache" path="." />
     
+    <!-- Cache images directory for QR sharing -->
+    <cache-path name="images" path="images/" />
+    
     <!-- External cache for sharing -->
     <external-cache-path name="external_cache" path="." />
 </paths>
