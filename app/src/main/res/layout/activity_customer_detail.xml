@@ -281,6 +281,17 @@
                     android:layout_marginEnd="8dp" />
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDepositForCustomer"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Nạp tiền hộ"
+                    android:textColor="@color/white"
+                    app:backgroundTint="@color/primary"
+                    app:cornerRadius="12dp"
+                    android:layout_marginStart="8dp" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSaveChanges"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"

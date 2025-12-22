@@ -9,15 +9,18 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.vibebank.R;
-import com.example.vibebank.TransactionHistoryActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Transaction;
 
 import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 import android.content.Intent;
 
@@ -26,10 +29,11 @@ public class CustomerDetailActivity extends AppCompatActivity {
     private TextInputEditText edtFullName, edtPhone, edtEmail;
     private TextView tvAccountNumber, tvBalance, tvKycStatus;
     private ImageView btnBack, btnEdit;
-    private MaterialButton btnViewTransactions, btnSaveChanges;
+    private MaterialButton btnViewTransactions, btnSaveChanges, btnDepositForCustomer;
 
     private FirebaseFirestore db;
     private String userId;
+    private double currentBalance = 0;
     private boolean isEditMode = false;
 
     @Override
@@ -55,6 +59,7 @@ public class CustomerDetailActivity extends AppCompatActivity {
         tvKycStatus = findViewById(R.id.tvKycStatus);
         btnViewTransactions = findViewById(R.id.btnViewTransactions);
         btnSaveChanges = findViewById(R.id.btnSaveChanges);
+        btnDepositForCustomer = findViewById(R.id.btnDepositForCustomer);
     }
 
     private void loadCustomerData() {
@@ -64,7 +69,7 @@ public class CustomerDetailActivity extends AppCompatActivity {
         String email = getIntent().getStringExtra("email");
         String accountNumber = getIntent().getStringExtra("accountNumber");
         String kycStatus = getIntent().getStringExtra("kycStatus");
-        double balance = getIntent().getDoubleExtra("balance", 0);
+        currentBalance = getIntent().getDoubleExtra("balance", 0);
 
         edtFullName.setText(fullName);
         edtPhone.setText(phone);
@@ -72,7 +77,7 @@ public class CustomerDetailActivity extends AppCompatActivity {
         tvAccountNumber.setText(accountNumber);
         
         NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
-        tvBalance.setText(formatter.format(balance) + " VNĐ");
+        tvBalance.setText(formatter.format(currentBalance) + " VNĐ");
 
         tvKycStatus.setText(getKycStatusDisplay(kycStatus));
         
@@ -105,6 +110,8 @@ public class CustomerDetailActivity extends AppCompatActivity {
             // Note: You may need to modify TransactionHistoryActivity to accept userId parameter
             Toast.makeText(this, "Xem giao dịch của khách hàng", Toast.LENGTH_SHORT).show();
         });
+
+        btnDepositForCustomer.setOnClickListener(v -> showDepositDialog());
     }
 
     private void toggleEditMode() {
@@ -146,6 +153,97 @@ public class CustomerDetailActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Lỗi: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    /**
+     * Hiển thị dialog cho nhân viên nhập số tiền nạp hộ
+     */
+    private void showDepositDialog() {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_amount_input, null);
+        builder.setView(dialogView);
+
+        TextView tvTitle = dialogView.findViewById(R.id.tvDialogTitle);
+        TextView tvBalanceInfo = dialogView.findViewById(R.id.tvCurrentBalance);
+        android.widget.EditText edtAmount = dialogView.findViewById(R.id.edtAmount);
+
+        tvTitle.setText("Nạp tiền hộ khách hàng");
+        NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
+        tvBalanceInfo.setText("Số dư hiện tại: " + formatter.format(currentBalance) + " VNĐ");
+
+        builder.setPositiveButton("Xác nhận nạp", null);
+        builder.setNegativeButton("Hủy", (dialog, which) -> dialog.dismiss());
+
+        android.app.AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(d -> {
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                String amountStr = edtAmount.getText().toString().trim();
+                if (amountStr.isEmpty()) {
+                    Toast.makeText(this, "Vui lòng nhập số tiền", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                try {
+                    double amount = Double.parseDouble(amountStr.replaceAll("[,.]", ""));
+                    if (amount <= 0) {
+                        Toast.makeText(this, "Số tiền phải lớn hơn 0", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    if (amount < 10000) {
+                        Toast.makeText(this, "Số tiền tối thiểu 10,000 VNĐ", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    depositForCustomer(amount);
+                    dialog.dismiss();
+                } catch (NumberFormatException e) {
+                    Toast.makeText(this, "Số tiền không hợp lệ", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+
+        dialog.show();
+    }
+
+    /**
+     * Nhân viên nạp tiền trực tiếp vào tài khoản khách hàng
+     * - Cộng số dư vào accounts/{userId}.balance
+     * - Ghi log vào accounts/{userId}/transactions
+     */
+    private void depositForCustomer(double amount) {
+        DocumentReference accountRef = db.collection("accounts").document(userId);
+
+        db.runTransaction((Transaction.Function<Void>) transaction -> {
+            Double balance = transaction.get(accountRef).getDouble("balance");
+            if (balance == null) balance = 0.0;
+
+            double newBalance = balance + amount;
+            transaction.update(accountRef, "balance", newBalance);
+
+            // Ghi lịch sử giao dịch
+            String transId = UUID.randomUUID().toString();
+            Map<String, Object> log = new HashMap<>();
+            log.put("userId", userId);
+            log.put("type", "RECEIVED");
+            log.put("amount", amount);
+            log.put("content", "Nạp tiền tại quầy bởi nhân viên ngân hàng");
+            log.put("relatedAccountName", "Giao dịch tại quầy");
+            log.put("timestamp", Timestamp.now());
+            log.put("transactionId", transId);
+
+            DocumentReference logRef = accountRef.collection("transactions").document(transId);
+            transaction.set(logRef, log);
+
+            currentBalance = newBalance;
+            return null;
+        }).addOnSuccessListener(aVoid -> {
+            NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
+            tvBalance.setText(formatter.format(currentBalance) + " VNĐ");
+            Toast.makeText(this, "Nạp tiền thành công cho khách hàng", Toast.LENGTH_SHORT).show();
+        }).addOnFailureListener(e -> {
+            Toast.makeText(this, "Lỗi nạp tiền: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        });
     }
 }
 
