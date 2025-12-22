@@ -178,6 +178,7 @@ public class LoginActivity extends BaseActivity implements
                         // Giả sử lấy được userId từ token hoặc từ session cũ
                         String savedUserId = sessionManager.getCurrentUserId();
                         String savedPhone = sessionManager.getSavedPhone();
+                        String savedAvatarUrl = sessionManager.getAvatarUrl();
 
                         if (savedUserId == null || savedUserId.isEmpty()) {
                             Toast.makeText(LoginActivity.this, "Dữ liệu người dùng hỏng, vui lòng đăng nhập bằng mật khẩu", Toast.LENGTH_SHORT).show();
@@ -223,6 +224,7 @@ public class LoginActivity extends BaseActivity implements
         viewModel.loginResult.observe(this, error -> {
             if (error == null) {
                 sessionManager.saveUserFullName(viewModel.tempFullName);
+                sessionManager.saveAvatarUrl(viewModel.avatarUrl);
                 String authToken = viewModel.getAuthToken();
                 sessionManager.startSession(viewModel.tempUserId, viewModel.tempPhone, authToken);
                 navigateToHome();

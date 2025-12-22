@@ -1,8 +1,10 @@
 package com.example.vibebank.ui.profile;
 
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Base64;
+import android.util.Log;
 import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -201,6 +203,7 @@ public class ProfileActivity extends AppCompatActivity {
                         .error(R.drawable.ic_avatar_placeholder)
                         .circleCrop()
                         .into(imgAvatar);
+                sessionManager.saveAvatarUrl(url);
             }
         });
     }
@@ -309,6 +312,8 @@ public class ProfileActivity extends AppCompatActivity {
         edtBirthday.setOnClickListener(v -> {
             // Lấy ngày hiện tại để mặc định hiển thị
             java.util.Calendar calendar = java.util.Calendar.getInstance();
+            java.util.Calendar eighteenYearsAgo = java.util.Calendar.getInstance();
+            eighteenYearsAgo.add(java.util.Calendar.YEAR, -18);
 
             // Nếu đã có ngày sinh cũ, parse ra để hiển thị đúng ngày đó trên lịch
             try {
@@ -324,12 +329,15 @@ public class ProfileActivity extends AppCompatActivity {
             int day = calendar.get(java.util.Calendar.DAY_OF_MONTH);
 
             // Hiển thị lịch
-            new android.app.DatePickerDialog(this, (view1, selectedYear, selectedMonth, selectedDay) -> {
+            DatePickerDialog dialog = new DatePickerDialog(this, (view1, selectedYear, selectedMonth, selectedDay) -> {
                 // Format thành dd/MM/yyyy
                 String selectedDate = String.format(java.util.Locale.getDefault(), "%02d/%02d/%d", selectedDay, selectedMonth + 1, selectedYear);
                 edtBirthday.setText(selectedDate);
                 edtBirthday.setError(null); // Xóa lỗi nếu có
-            }, year, month, day).show();
+            }, year, month, day);
+            dialog.getDatePicker().setMaxDate(eighteenYearsAgo.getTimeInMillis());
+
+            dialog.show();
         });
 
         androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)

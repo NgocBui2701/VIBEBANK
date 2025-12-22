@@ -8,8 +8,10 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -23,9 +25,12 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
+import androidx.core.view.GravityCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
+import com.bumptech.glide.Glide;
 import com.example.vibebank.AccountManagementActivity;
 import com.example.vibebank.MyQRActivity;
 import com.example.vibebank.NotificationsActivity;
@@ -44,6 +49,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.ListenerRegistration;
@@ -60,6 +66,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ImageView btnToggleBalance;
     private ImageView btnNotification;
     private ImageView btnMenu;
+    private DrawerLayout drawerLayout;
 
     // Quick action buttons
     private LinearLayout btnQR;
@@ -122,8 +129,8 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         setupBottomNav();
         setupFunctionButtons();
         setupListeners();
-
         setupData();
+        updateNavHeaderData();
 
         // Bắt đầu lắng nghe thông báo
         listenForNotifications();
@@ -196,6 +203,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         btnToggleBalance = findViewById(R.id.btnToggleBalance);
         btnNotification = findViewById(R.id.btnNotification);
         btnMenu = findViewById(R.id.btnMenu);
+        drawerLayout = findViewById(R.id.drawer_layout);
         scrollView = findViewById(R.id.scrollView);
 
         // Initialize quick actions
@@ -212,6 +220,62 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         txtHistory = findViewById(R.id.txtHistory);
         txtTransfer = findViewById(R.id.txtTransfer);
         txtSupport = findViewById(R.id.txtSupport);
+    }
+
+    private void updateNavHeaderData() {
+        // 1. Lấy Header View từ NavigationView
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        View headerView = navigationView.getHeaderView(0);
+
+        // 2. Ánh xạ các View bên trong Header
+        ImageView imgNavAvatar = headerView.findViewById(R.id.imgNavAvatar);
+        TextView txtNavName = headerView.findViewById(R.id.txtNavName);
+        TextView txtNavSTK = headerView.findViewById(R.id.txtNavSTK);
+        ImageButton btnCloseDrawer = headerView.findViewById(R.id.btnCloseDrawer);
+
+        btnCloseDrawer.setOnClickListener(v -> {
+            DrawerLayout drawer = findViewById(R.id.drawer_layout);
+            if (drawer != null) {
+                drawer.closeDrawer(androidx.core.view.GravityCompat.END);
+            }
+        });
+
+        // 3. Lấy dữ liệu từ SessionManager
+        SessionManager sessionManager = new SessionManager(this);
+
+        String fullName = sessionManager.getUserFullName();
+        String stk = sessionManager.getSavedPhone();
+        String avatarUrl = sessionManager.getAvatarUrl();
+
+        Log.d(TAG, "updateNavHeaderData: url session: " + avatarUrl);
+
+        if (avatarUrl == null || avatarUrl.isEmpty()) {
+            avatarUrl = viewModel.getAvatarUrl();
+            Log.d(TAG, "updateNavHeaderData: url viewmodel: " + avatarUrl);
+            sessionManager.saveAvatarUrl(avatarUrl);
+        }
+
+
+        // 4. Hiển thị dữ liệu
+        txtNavName.setText(fullName);
+
+        // Nếu chưa có STK thì hiện thông báo, nếu có thì hiện số
+        if (stk != null && !stk.isEmpty()) {
+            txtNavSTK.setText("STK: " + stk);
+        } else {
+            txtNavSTK.setText("STK: Đang cập nhật");
+        }
+        Log.d("CHECK_IMG", "URL ảnh là: " + avatarUrl); // Xem Logcat xem nó in ra cái gì?
+        // 5. Load ảnh Avatar bằng Glide
+        if (avatarUrl != null && !avatarUrl.isEmpty()) {
+            Glide.with(this)
+                    .load(avatarUrl)
+                    .placeholder(R.drawable.ic_avatar_placeholder) // Ảnh mặc định nếu đang load
+                    .error(R.drawable.ic_avatar_placeholder)       // Ảnh mặc định nếu lỗi link
+                    .circleCrop()                                  // Cắt tròn
+                    .signature(new com.bumptech.glide.signature.ObjectKey(System.currentTimeMillis()))
+                    .into(imgNavAvatar);
+        }
     }
 
     private void setupBottomNav() {
@@ -265,10 +329,9 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
         // Menu button
-        btnMenu.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Toast.makeText(HomeActivity.this, "Menu", Toast.LENGTH_SHORT).show();
+        btnMenu.setOnClickListener(v -> {
+            if (drawerLayout != null) {
+                drawerLayout.openDrawer(GravityCompat.END);
             }
         });
     }
@@ -309,15 +372,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (isBalanceVisible) {
             // Hiện tiền
             txtBalance.setText(currentBalanceString + " VND");
-            btnToggleBalance.setImageResource(R.drawable.ic_eye_off); // Icon mắt mở/đóng tùy resource bạn có
+            btnToggleBalance.setImageResource(R.drawable.ic_eye_off);
         } else {
             // Ẩn tiền
             txtBalance.setText("********* VND");
             btnToggleBalance.setImageResource(R.drawable.ic_eye);
         }
     }
-
-    // --- CÁC PHẦN CẤU HÌNH MAP & NAV GIỮ NGUYÊN ---
 
     private void setupMap(Bundle savedInstanceState) {
         mapView = findViewById(R.id.mapView);
@@ -517,6 +578,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onResume() {
         super.onResume();
         mapView.onResume();
+        updateNavHeaderData();
     }
 
     @Override

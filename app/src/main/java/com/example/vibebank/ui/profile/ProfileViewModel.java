@@ -179,7 +179,6 @@ public class ProfileViewModel extends ViewModel {
                     toastMessage.setValue("Lỗi lưu dữ liệu");
                 });
     }
-
     public void checkEmailExists(String email, OnCheckEmailListener listener) {
         isLoading.setValue(true);
         db.collection("users")
