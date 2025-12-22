@@ -27,15 +27,18 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.vibebank.AccountManagementActivity;
+import com.example.vibebank.DepositActivity;
 import com.example.vibebank.ElectricBillActivity;
 import com.example.vibebank.WaterBillActivity;
 import com.example.vibebank.TopupActivity;
+import com.example.vibebank.TopupOptionsActivity;
 import com.example.vibebank.FlightTicketActivity;
 import com.example.vibebank.MovieTicketActivity;
 import com.example.vibebank.HotelBookingActivity;
 import com.example.vibebank.MyQRActivity;
 import com.example.vibebank.NotificationsActivity;
 import com.example.vibebank.ScanQRActivity;
+import com.example.vibebank.VNPayTestActivity;
 import com.example.vibebank.ui.profile.ProfileActivity;
 import com.example.vibebank.R;
 import com.example.vibebank.TransactionHistoryActivity;
@@ -504,6 +507,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
         findViewById(R.id.btnTopup).setOnClickListener(v -> {
+            // Nạp tiền điện thoại (phone topup)
             Intent intent = new Intent(HomeActivity.this, TopupActivity.class);
             startActivity(intent);
         });
@@ -520,6 +524,13 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         findViewById(R.id.btnHotel).setOnClickListener(v -> {
             Intent intent = new Intent(HomeActivity.this, HotelBookingActivity.class);
+            startActivity(intent);
+        });
+        
+        findViewById(R.id.btnVNPayTest).setOnClickListener(v -> {
+            // Nạp tiền vào tài khoản qua VNPay
+            Intent intent = new Intent(HomeActivity.this, DepositActivity.class);
+            intent.putExtra("accountType", 0); // 0 = Payment account deposit via VNPay
             startActivity(intent);
         });
     }

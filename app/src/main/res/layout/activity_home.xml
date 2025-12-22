@@ -479,10 +479,35 @@
 
                         </LinearLayout>
 
-                        <View
+                        <LinearLayout
+                            android:id="@+id/btnVNPayTest"
                             android:layout_width="0dp"
-                            android:layout_height="1dp"
-                            android:layout_weight="1" />
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackground"
+                            android:padding="8dp">
+
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/ic_vnpay"
+                                android:scaleType="fitCenter" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Nạp Tiền"
+                                android:textColor="@color/text_primary"
+                                android:textSize="12sp"
+                                android:fontFamily="@font/nunito_sans"
+                                android:gravity="center"
+                                android:layout_marginTop="8dp" />
+
+                        </LinearLayout>
 
                         <View
                             android:layout_width="0dp"

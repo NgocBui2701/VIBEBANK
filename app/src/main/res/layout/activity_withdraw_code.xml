@@ -347,6 +347,22 @@
                 app:cornerRadius="12dp"
                 android:layout_marginTop="32dp" />
 
+            <!-- View History Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnViewHistory"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Xem Mã Đã Tạo"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:fontFamily="@font/nunito_sans"
+                android:textColor="@color/black"
+                android:backgroundTint="@color/white"
+                app:cornerRadius="12dp"
+                app:strokeColor="@color/black"
+                app:strokeWidth="1dp"
+                android:layout_marginTop="12dp" />
+
             <!-- Loading Progress -->
             <ProgressBar
                 android:id="@+id/progressBar"

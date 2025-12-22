@@ -30,7 +30,7 @@ public class WithdrawCodeActivity extends AppCompatActivity {
     private TextView txtAccountNumber, txtBalance;
     private EditText edtAmount, edtPin;
     private MaterialButton btn500k, btn1m, btn2m, btn3m, btn5m, btn10m;
-    private MaterialButton btnGenerateCode;
+    private MaterialButton btnGenerateCode, btnViewHistory;
     private ProgressBar progressBar;
 
     // Firebase
@@ -75,6 +75,7 @@ public class WithdrawCodeActivity extends AppCompatActivity {
         btn10m = findViewById(R.id.btn10m);
 
         btnGenerateCode = findViewById(R.id.btnGenerateCode);
+        btnViewHistory = findViewById(R.id.btnViewHistory);
         progressBar = findViewById(R.id.progressBar);
     }
 
@@ -125,6 +126,13 @@ public class WithdrawCodeActivity extends AppCompatActivity {
 
         // Generate code button
         btnGenerateCode.setOnClickListener(v -> validateAndGenerateCode());
+        
+        // View history button
+        btnViewHistory.setOnClickListener(v -> {
+            android.util.Log.d("WithdrawCodeActivity", "View History button clicked");
+            Intent intent = new Intent(WithdrawCodeActivity.this, WithdrawCodeHistoryActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void loadAccountInfo() {
