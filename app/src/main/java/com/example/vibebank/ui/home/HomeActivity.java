@@ -32,6 +32,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.bumptech.glide.Glide;
 import com.example.vibebank.AccountManagementActivity;
+import com.example.vibebank.BranchListActivity;
 import com.example.vibebank.DepositActivity;
 import com.example.vibebank.ElectricBillActivity;
 import com.example.vibebank.WaterBillActivity;
