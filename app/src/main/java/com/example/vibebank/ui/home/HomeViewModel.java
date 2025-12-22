@@ -21,8 +21,10 @@ public class HomeViewModel extends ViewModel {
     public MutableLiveData<String> userName = new MutableLiveData<>();
     public MutableLiveData<Double> balanceValue = new MutableLiveData<>();
     public MutableLiveData<String> balanceFormatted = new MutableLiveData<>();
+    public MutableLiveData<String> avatarUrl = new MutableLiveData<>();
 
-    // Load thông tin người dùng (Tên)
+
+    // Load thông tin người dùng (Tên, Avatar)
     public void loadUserProfile(String userId) {
         if (userId == null || userId.isEmpty()) return;
 
@@ -33,6 +35,10 @@ public class HomeViewModel extends ViewModel {
                         String fullName = documentSnapshot.getString("full_name");
                         if (fullName != null) {
                             userName.setValue(fullName.toUpperCase());
+                        }
+                        String avatarUrl = documentSnapshot.getString("avatar_url");
+                        if (avatarUrl != null) {
+                            this.avatarUrl.setValue(avatarUrl);
                         }
                     }
                 })
@@ -72,6 +78,10 @@ public class HomeViewModel extends ViewModel {
         String formatted = currencyVN.format(amount);
         // Mặc định nó sẽ ra "1.000.000 đ", ta đổi thành " VND" cho đẹp nếu muốn
         return formatted.replace("VND", "").trim();
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl.getValue();
     }
 
     // Hủy lắng nghe khi thoát màn hình để tránh rò rỉ bộ nhớ

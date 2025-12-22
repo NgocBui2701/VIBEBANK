@@ -23,6 +23,7 @@ public class LoginViewModel extends ViewModel {
     public String tempUserId = "";
     public String tempFullName = "";
     public String tempPhone = "";
+    public String avatarUrl = "";
     private String authTokenFromApi = "";
 
     private static final int MAX_ATTEMPTS = 5;
@@ -52,6 +53,8 @@ public class LoginViewModel extends ViewModel {
                         tempUserId = userDoc.getId();
                         tempFullName = userDoc.getString("full_name");
                         tempPhone = phone;
+                        avatarUrl = userDoc.getString("avatar_url");
+                        Log.d("Login", "login: url ảnh là: " + avatarUrl);
 
                         Long lockUntil = userDoc.getLong("lock_until"); // Timestamp
                         long currentTime = System.currentTimeMillis();

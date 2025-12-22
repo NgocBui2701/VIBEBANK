@@ -24,10 +24,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.VibeBank">
         <activity
+            android:name=".ui.register.RegisterFaceAuthActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.profile.ChangePasswordActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustPan"/>
-        <!-- Google Maps API Key -->
+            android:windowSoftInputMode="adjustPan" /> <!-- Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao" /> <!-- Google Fonts Provider -->

@@ -10,6 +10,7 @@ public class SessionManager {
     private static final String PREF_NAME = "VibeBankSession";
     private static final String KEY_SAVED_PHONE = "saved_phone";
     private static final String KEY_FULL_NAME = "full_name";
+    private static final String KEY_AVATAR_URL = "avatar_url";
     private static final String KEY_HAS_LOGIN_BEFORE = "has_login_before";
     private static final String KEY_USER_ID = "user_id";
     private static final String KEY_AUTH_TOKEN = "auth_token";
@@ -58,6 +59,14 @@ public class SessionManager {
     public String getUserFullName() {
         // Trả về tên đã lưu, nếu chưa có thì trả về "Khách hàng"
         return pref.getString(KEY_FULL_NAME, "Quý khách");
+    }
+    // Hàm lấy Avatar URL
+    public void saveAvatarUrl(String url) {
+        editor.putString(KEY_AVATAR_URL, url);
+        editor.commit();
+    }
+    public String getAvatarUrl() {
+        return pref.getString(KEY_AVATAR_URL, "");
     }
 
     // Lấy thông tin User
