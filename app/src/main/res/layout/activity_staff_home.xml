@@ -183,7 +183,7 @@
                     <androidx.cardview.widget.CardView
                         android:id="@+id/btnCustomerList"
                         android:layout_width="0dp"
-                        android:layout_height="120dp"
+                        android:layout_height="140dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
                         app:cardCornerRadius="12dp"
@@ -196,14 +196,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:orientation="vertical"
-                            android:padding="16dp"
+                            android:padding="12dp"
                             android:gravity="center">
 
                             <ImageView
-                                android:layout_width="56dp"
-                                android:layout_height="56dp"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
                                 android:src="@drawable/ic_customer"
-                                android:padding="12dp"
+                                android:padding="10dp"
                                 android:background="@drawable/circle_outline_white"
                                 app:tint="@color/primary" />
 
@@ -211,11 +211,11 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Danh sách\nKhách hàng"
-                                android:textSize="13sp"
+                                android:textSize="12sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/black"
                                 android:gravity="center"
-                                android:layout_marginTop="12dp" />
+                                android:layout_marginTop="8dp" />
 
                         </LinearLayout>
 
@@ -225,7 +225,7 @@
                     <androidx.cardview.widget.CardView
                         android:id="@+id/btnCreateCustomer"
                         android:layout_width="0dp"
-                        android:layout_height="120dp"
+                        android:layout_height="140dp"
                         android:layout_weight="1"
                         android:layout_marginStart="8dp"
                         app:cardCornerRadius="12dp"
@@ -238,14 +238,14 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:orientation="vertical"
-                            android:padding="16dp"
+                            android:padding="12dp"
                             android:gravity="center">
 
                             <ImageView
-                                android:layout_width="56dp"
-                                android:layout_height="56dp"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
                                 android:src="@drawable/ic_add_user"
-                                android:padding="12dp"
+                                android:padding="10dp"
                                 android:background="@drawable/circle_outline_white"
                                 app:tint="@color/success" />
 
@@ -253,11 +253,11 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Tạo tài khoản\nmới"
-                                android:textSize="13sp"
+                                android:textSize="12sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/black"
                                 android:gravity="center"
-                                android:layout_marginTop="12dp" />
+                                android:layout_marginTop="8dp" />
 
                         </LinearLayout>
 
@@ -278,7 +278,7 @@
                 <androidx.cardview.widget.CardView
                     android:id="@+id/btnEkycVerification"
                     android:layout_width="match_parent"
-                    android:layout_height="120dp"
+                    android:layout_height="100dp"
                     android:layout_marginBottom="24dp"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="3dp"
@@ -289,15 +289,15 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:padding="16dp"
-                        android:gravity="center">
+                        android:orientation="horizontal"
+                        android:padding="20dp"
+                        android:gravity="center_vertical">
 
                         <ImageView
-                            android:layout_width="56dp"
-                            android:layout_height="56dp"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
                             android:src="@drawable/ic_security"
-                            android:padding="12dp"
+                            android:padding="10dp"
                             android:background="@drawable/circle_outline_white"
                             app:tint="@color/warning" />
 
@@ -305,17 +305,16 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Xác minh eKYC"
-                            android:textSize="13sp"
+                            android:textSize="16sp"
                             android:textStyle="bold"
                             android:textColor="@color/black"
-                            android:gravity="center"
-                            android:layout_marginTop="12dp" />
+                            android:layout_marginStart="16dp" />
 
                     </LinearLayout>
 
                 </androidx.cardview.widget.CardView>
 
-                <!-- Account Management -->
+                <!-- Interest Rate Management -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -328,7 +327,7 @@
                 <androidx.cardview.widget.CardView
                     android:id="@+id/btnInterestRate"
                     android:layout_width="match_parent"
-                    android:layout_height="120dp"
+                    android:layout_height="100dp"
                     android:layout_marginBottom="24dp"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="3dp"
@@ -339,15 +338,15 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:padding="16dp"
-                        android:gravity="center">
+                        android:orientation="horizontal"
+                        android:padding="20dp"
+                        android:gravity="center_vertical">
 
                         <ImageView
-                            android:layout_width="56dp"
-                            android:layout_height="56dp"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
                             android:src="@drawable/ic_rate"
-                            android:padding="12dp"
+                            android:padding="10dp"
                             android:background="@drawable/circle_outline_white"
                             app:tint="#9C27B0" />
 
@@ -355,11 +354,10 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Quản lý lãi suất"
-                            android:textSize="13sp"
+                            android:textSize="16sp"
                             android:textStyle="bold"
                             android:textColor="@color/black"
-                            android:gravity="center"
-                            android:layout_marginTop="12dp" />
+                            android:layout_marginStart="16dp" />
 
                     </LinearLayout>
 
