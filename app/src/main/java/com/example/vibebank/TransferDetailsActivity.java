@@ -74,6 +74,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     private LinearLayout llSuggestions;
     private static final double MAX_SUGGESTION_LIMIT = 999999999;
     private static final double AMOUNT_TRANSACTION_LIMIT = 500000000;
+    private static final double BIOMETRIC_LIMIT = 10000000; // 10 triệu - yêu cầu xác thực sinh trắc học
     private TextView tvSuggest1, tvSuggest2, tvSuggest3;
     
     // Source account info
@@ -87,6 +88,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements
     private PhoneAuthManager phoneAuthManager;
     private OtpBottomSheetDialog otpDialog;
     private SessionManager sessionManager;
+    private BiometricHelper biometricHelper;
     private static final String PREFS_SECURITY = "SecurityPrefs";
     private static final String KEY_FAILED_ATTEMPTS = "failed_attempts";
     private static final String KEY_LOCKOUT_TIME = "lockout_timestamp";
@@ -118,6 +120,7 @@ public class TransferDetailsActivity extends AppCompatActivity implements
         db = FirebaseFirestore.getInstance();
         phoneAuthManager = new PhoneAuthManager(this, this);
         sessionManager = new SessionManager(this);
+        biometricHelper = new BiometricHelper();
         
         // Initialize TicketDatabaseService for flight and movie ticket bookings
         TicketDatabaseService.init();
@@ -338,7 +341,24 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             return;
         }
 
-        // Nếu có SĐT thì gửi OTP
+        // Kiểm tra giao dịch giá trị cao (>= 10 triệu) cần xác thực sinh trắc học
+        if (amount >= BIOMETRIC_LIMIT) {
+            // Kiểm tra xem user đã bật sinh trắc học trong cài đặt chưa
+            if (sessionManager.isBiometricEnabled()) {
+                // Nếu đã bật -> Yêu cầu quét vân tay/khuôn mặt trước
+                authenticateBiometric();
+            } else {
+                // Chưa bật -> Báo user và gửi OTP bình thường
+                Toast.makeText(this, "Giao dịch giá trị cao. Bạn nên bật xác thực sinh trắc học trong Cài đặt.", Toast.LENGTH_LONG).show();
+                startOtpProcess();
+            }
+        } else {
+            // Giao dịch thường (< 10 triệu) -> Chỉ cần OTP
+            startOtpProcess();
+        }
+    }
+
+    private void startOtpProcess() {
         if (senderPhone != null && !senderPhone.isEmpty()) {
             isOtpVerified = false;
             btnTransfer.setEnabled(false);
@@ -347,6 +367,53 @@ public class TransferDetailsActivity extends AppCompatActivity implements
             phoneAuthManager.sendOtp(senderPhone);
         } else {
             showErrorDialog("Không tìm thấy số điện thoại xác thực.");
+        }
+    }
+
+    private void authenticateBiometric() {
+        try {
+            // Lấy Cipher (mã hóa/giải mã) từ Helper để đảm bảo CryptoObject
+            Cipher cipher = biometricHelper.getCipherForEncryption();
+
+            BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("Xác thực giao dịch giá trị cao")
+                    .setSubtitle("Vui lòng xác thực vân tay/khuôn mặt để tiếp tục")
+                    .setNegativeButtonText("Hủy")
+                    .setAllowedAuthenticators(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG)
+                    .build();
+
+            BiometricPrompt biometricPrompt = new BiometricPrompt(this,
+                    ContextCompat.getMainExecutor(this),
+                    new BiometricPrompt.AuthenticationCallback() {
+                        @Override
+                        public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                            super.onAuthenticationSucceeded(result);
+                            // Quét thành công -> Chuyển sang bước gửi OTP
+                            Toast.makeText(TransferDetailsActivity.this, "Xác thực sinh trắc học thành công!", Toast.LENGTH_SHORT).show();
+                            startOtpProcess();
+                        }
+
+                        @Override
+                        public void onAuthenticationError(int errorCode, CharSequence errString) {
+                            super.onAuthenticationError(errorCode, errString);
+                            Toast.makeText(TransferDetailsActivity.this, "Lỗi xác thực: " + errString, Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onAuthenticationFailed() {
+                            super.onAuthenticationFailed();
+                            // Vân tay sai, cho thử lại
+                            Toast.makeText(TransferDetailsActivity.this, "Xác thực thất bại. Vui lòng thử lại.", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+
+            // Gọi xác thực kèm CryptoObject để bảo mật cao nhất
+            biometricPrompt.authenticate(promptInfo, new BiometricPrompt.CryptoObject(cipher));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Nếu lỗi khởi tạo Cipher (ví dụ Key bị invalidate), báo user tắt bật lại sinh trắc học
+            showErrorDialog("Lỗi bảo mật sinh trắc học. Vui lòng tắt và bật lại tính năng này trong cài đặt.");
         }
     }
 
