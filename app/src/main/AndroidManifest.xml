@@ -204,7 +204,26 @@
                     android:host="vnpay-return" />
             </intent-filter>
         </activity>
-        
+
+        <activity
+            android:name=".staff.StaffHomeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".staff.EkycVerificationActivity"
+            android:exported="false" />
+        <activity
+            android:name=".staff.CustomerDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".staff.CustomerManagementActivity"
+            android:exported="false" />
+        <activity
+            android:name=".staff.CreateCustomerActivity"
+            android:exported="false" />
+        <activity
+            android:name=".staff.AccountInterestRateActivity"
+            android:exported="false" />
+
         <!-- FileProvider for sharing files -->
         <provider
             android:name="androidx.core.content.FileProvider"

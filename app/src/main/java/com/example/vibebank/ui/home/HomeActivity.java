@@ -356,7 +356,7 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         txtUserName.setText(fullName);
 
         // 1. Load tên người dùng
-        viewModel.loadUserProfile(userId);
+        viewModel.loadUserProfile(this);
 
         // Lắng nghe thay đổi tên từ ViewModel
         viewModel.userName.observe(this, name -> {
