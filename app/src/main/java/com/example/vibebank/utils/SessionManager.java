@@ -16,6 +16,7 @@ public class SessionManager {
     private static final String KEY_AUTH_TOKEN = "auth_token";
     private static final String KEY_BIO_TOKEN = "BIO_ENCRYPTED_TOKEN";
     private static final String KEY_BIO_IV = "BIO_IV";
+    private static final String KEY_ACCOUNT_NUMBER = "account_number";
 
     private static boolean isCurrentSessionActive = false;
     private static String currentUserId = null;
@@ -67,6 +68,17 @@ public class SessionManager {
     }
     public String getAvatarUrl() {
         return pref.getString(KEY_AVATAR_URL, "");
+    }
+
+    // Hàm lưu số tài khoản
+    public void saveAccountNumber(String accountNumber) {
+        editor.putString(KEY_ACCOUNT_NUMBER, accountNumber);
+        editor.apply();
+    }
+
+    // Hàm lấy số tài khoản
+    public String getAccountNumber() {
+        return pref.getString(KEY_ACCOUNT_NUMBER, "");
     }
 
     // Lấy thông tin User

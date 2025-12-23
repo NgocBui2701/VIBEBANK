@@ -11,6 +11,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import com.example.vibebank.utils.SessionManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -36,6 +37,7 @@ public class WithdrawCodeActivity extends AppCompatActivity {
     // Firebase
     private FirebaseFirestore db;
     private String currentUserId;
+    private SessionManager sessionManager;
     
     // Account data
     private double currentBalance = 0;
@@ -49,9 +51,15 @@ public class WithdrawCodeActivity extends AppCompatActivity {
 
         // Initialize Firebase
         db = FirebaseFirestore.getInstance();
-        FirebaseAuth auth = FirebaseAuth.getInstance();
-        if (auth.getCurrentUser() != null) {
-            currentUserId = auth.getCurrentUser().getUid();
+        sessionManager = new SessionManager(this);
+        currentUserId = sessionManager.getCurrentUserId();
+        
+        // Fallback: thử lấy từ FirebaseAuth nếu chưa có trong session
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+            if (auth.getCurrentUser() != null) {
+                currentUserId = auth.getCurrentUser().getUid();
+            }
         }
 
         initViews();
@@ -136,39 +144,25 @@ public class WithdrawCodeActivity extends AppCompatActivity {
     }
 
     private void loadAccountInfo() {
-        if (currentUserId == null) {
+        if (currentUserId == null || currentUserId.isEmpty()) {
             Toast.makeText(this, "Không tìm thấy thông tin người dùng", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
 
-        // Load from Firestore
-        // Load user info and account number from users collection first
-        db.collection("users").document(currentUserId)
-            .get()
-            .addOnSuccessListener(userDoc -> {
-                if (userDoc.exists()) {
-                    // Try to get account number from users collection
-                    accountNumber = userDoc.getString("account_number");
-                    if (accountNumber == null) {
-                        accountNumber = userDoc.getString("accountNumber");
-                    }
+        // Lấy account number từ session trước
+        accountNumber = sessionManager.getAccountNumber();
+        
+        if (accountNumber != null && !accountNumber.isEmpty()) {
+            // Format account number: 1234567890 -> 1234 5678 90
+            String formatted = accountNumber.replaceAll("(.{4})", "$1 ").trim();
+            txtAccountNumber.setText(formatted);
+        } else {
+            // Nếu chưa có trong session, lấy từ Firestore và lưu vào session
+            loadAccountNumberFromFirestore();
+        }
 
-                    if (accountNumber != null) {
-                        // Format account number: 1234567890 -> 1234 5678 90
-                        String formatted = accountNumber.replaceAll("(.{4})", "$1 ").trim();
-                        txtAccountNumber.setText(formatted);
-                    } else {
-                        // Try to load from accounts collection
-                        loadAccountNumberFromAccounts();
-                    }
-                }
-            })
-            .addOnFailureListener(e -> {
-                Toast.makeText(this, "Lỗi tải thông tin người dùng", Toast.LENGTH_SHORT).show();
-            });
-
-        // Load balance from accounts collection
+        // Load balance from accounts collection (cần realtime nên vẫn query)
         db.collection("accounts").document(currentUserId)
             .get()
             .addOnSuccessListener(documentSnapshot -> {
@@ -186,6 +180,35 @@ public class WithdrawCodeActivity extends AppCompatActivity {
                 Toast.makeText(this, "Lỗi tải thông tin tài khoản", Toast.LENGTH_SHORT).show();
             });
     }
+    
+    private void loadAccountNumberFromFirestore() {
+        // Thử lấy từ users collection trước
+        db.collection("users").document(currentUserId)
+            .get()
+            .addOnSuccessListener(userDoc -> {
+                if (userDoc.exists()) {
+                    accountNumber = userDoc.getString("account_number");
+                    if (accountNumber == null) {
+                        accountNumber = userDoc.getString("accountNumber");
+                    }
+                }
+                
+                if (accountNumber != null && !accountNumber.isEmpty()) {
+                    // Lưu vào session
+                    sessionManager.saveAccountNumber(accountNumber);
+                    // Format và hiển thị
+                    String formatted = accountNumber.replaceAll("(.{4})", "$1 ").trim();
+                    txtAccountNumber.setText(formatted);
+                } else {
+                    // Thử lấy từ accounts collection
+                    loadAccountNumberFromAccounts();
+                }
+            })
+            .addOnFailureListener(e -> {
+                // Nếu lỗi, thử lấy từ accounts collection
+                loadAccountNumberFromAccounts();
+            });
+    }
 
     private void loadAccountNumberFromAccounts() {
         db.collection("accounts").document(currentUserId)
@@ -198,10 +221,13 @@ public class WithdrawCodeActivity extends AppCompatActivity {
                     }
                 }
                 
-                if (accountNumber == null) {
+                if (accountNumber == null || accountNumber.isEmpty()) {
                     // Generate account number based on userId
                     accountNumber = "VB" + currentUserId.substring(0, Math.min(10, currentUserId.length())).toUpperCase();
                 }
+                
+                // Lưu vào session để lần sau không cần query
+                sessionManager.saveAccountNumber(accountNumber);
                 
                 // Format and display
                 String formatted = accountNumber.replaceAll("(.{4})", "$1 ").trim();

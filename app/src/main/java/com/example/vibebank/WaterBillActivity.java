@@ -13,6 +13,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
+import com.example.vibebank.utils.SessionManager;
 import com.example.vibebank.utils.WaterBillMockService;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
@@ -34,6 +35,7 @@ public class WaterBillActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private String currentUserId;
     private double currentBalance = 0;
+    private SessionManager sessionManager;
 
     private WaterBillMockService.WaterBill currentBill;
 
@@ -47,9 +49,17 @@ public class WaterBillActivity extends AppCompatActivity {
 
         // Initialize Firebase
         db = FirebaseFirestore.getInstance();
-        FirebaseAuth auth = FirebaseAuth.getInstance();
-        if (auth.getCurrentUser() != null) {
-            currentUserId = auth.getCurrentUser().getUid();
+        sessionManager = new SessionManager(this);
+        
+        // Lấy userId từ session
+        currentUserId = sessionManager.getCurrentUserId();
+        
+        // Fallback: thử lấy từ FirebaseAuth nếu chưa có trong session
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+            if (auth.getCurrentUser() != null) {
+                currentUserId = auth.getCurrentUser().getUid();
+            }
         }
 
         initViews();

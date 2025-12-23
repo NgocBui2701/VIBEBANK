@@ -1,7 +1,6 @@
 package com.example.vibebank;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -16,6 +15,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.vibebank.utils.SessionManager;
 import com.example.vibebank.vnpay.VNPayHelper;
 import com.example.vibebank.vnpay.VNPayWebViewActivity;
 
@@ -39,6 +39,7 @@ public class DepositActivity extends AppCompatActivity {
     
     private FirebaseFirestore db;
     private String currentUserId;
+    private SessionManager sessionManager;
     private int accountType; // 0: Payment, 1: Saving, 2: Credit
     private double paymentBalance = 0.0;
     private double creditDebt = 0.0;
@@ -58,17 +59,20 @@ public class DepositActivity extends AppCompatActivity {
         setContentView(R.layout.activity_deposit);
         
         db = FirebaseFirestore.getInstance();
+        sessionManager = new SessionManager(this);
         
-        // Get user ID
-        FirebaseAuth auth = FirebaseAuth.getInstance();
-        if (auth.getCurrentUser() != null) {
-            currentUserId = auth.getCurrentUser().getUid();
-        } else {
-            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
-            currentUserId = prefs.getString("current_user_id", null);
+        // Get user ID from session
+        currentUserId = sessionManager.getCurrentUserId();
+        
+        // Fallback: thử lấy từ FirebaseAuth nếu chưa có trong session
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+            if (auth.getCurrentUser() != null) {
+                currentUserId = auth.getCurrentUser().getUid();
+            }
         }
         
-        if (currentUserId == null) {
+        if (currentUserId == null || currentUserId.isEmpty()) {
             Toast.makeText(this, "Lỗi phiên đăng nhập", Toast.LENGTH_SHORT).show();
             finish();
             return;
@@ -280,6 +284,18 @@ public class DepositActivity extends AppCompatActivity {
     private void processSuccessfulPayment(String txnRef, double amount) {
         Log.d(TAG, "💰 Processing successful payment: " + txnRef + ", Amount: " + amount);
         
+        // Đảm bảo currentUserId luôn có giá trị
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            currentUserId = sessionManager.getCurrentUserId();
+            if (currentUserId == null || currentUserId.isEmpty()) {
+                Log.e(TAG, "✗ Cannot get userId from session in processSuccessfulPayment");
+                Toast.makeText(this, "Lỗi phiên đăng nhập. Vui lòng đăng nhập lại.", Toast.LENGTH_LONG).show();
+                finish();
+                return;
+            }
+        }
+        
+        Log.d(TAG, "Using userId: " + currentUserId);
         DocumentReference accountRef = db.collection("accounts").document(currentUserId);
         DocumentReference txnDocRef = db.collection("vnpay_transactions").document(txnRef);
         
@@ -481,6 +497,17 @@ public class DepositActivity extends AppCompatActivity {
         Log.d(TAG, "========== onActivityResult ==========");
         Log.d(TAG, "RequestCode: " + requestCode + ", ResultCode: " + resultCode);
         Log.d(TAG, "Data: " + (data != null ? "Present" : "Null"));
+        
+        // Đảm bảo currentUserId luôn có giá trị từ session
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            currentUserId = sessionManager.getCurrentUserId();
+            if (currentUserId == null || currentUserId.isEmpty()) {
+                Log.e(TAG, "✗ Cannot get userId from session");
+                Toast.makeText(this, "Lỗi phiên đăng nhập. Vui lòng đăng nhập lại.", Toast.LENGTH_LONG).show();
+                finish();
+                return;
+            }
+        }
         
         if (requestCode == VNPAY_REQUEST_CODE) {
             if (resultCode == RESULT_OK && data != null) {

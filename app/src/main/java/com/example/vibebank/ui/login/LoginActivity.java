@@ -26,6 +26,7 @@ import com.example.vibebank.utils.BiometricHelper;
 import com.example.vibebank.utils.PhoneAuthManager;
 import com.example.vibebank.utils.SessionManager;
 import com.google.android.material.button.MaterialButton;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executor;
@@ -187,6 +188,9 @@ public class LoginActivity extends BaseActivity implements
 
                         // Lưu lại token vào session hiện tại để gọi API
                         sessionManager.startSession(savedUserId, savedPhone, originalToken);
+                        
+                        // Lấy account_number và lưu vào session (chạy async, không block navigation)
+                        loadAndSaveAccountNumber(savedUserId);
 
                         Toast.makeText(LoginActivity.this, "Đăng nhập vân tay thành công!", Toast.LENGTH_SHORT).show();
                         viewModel.isLoading.setValue(false);
@@ -227,6 +231,10 @@ public class LoginActivity extends BaseActivity implements
                 sessionManager.saveAvatarUrl(viewModel.avatarUrl);
                 String authToken = viewModel.getAuthToken();
                 sessionManager.startSession(viewModel.tempUserId, viewModel.tempPhone, authToken);
+                
+                // Lấy account_number và lưu vào session (chạy async, không block navigation)
+                loadAndSaveAccountNumber(viewModel.tempUserId);
+                
                 navigateToHome();
             } else {
                 showErrorDialog(error);
@@ -288,6 +296,45 @@ public class LoginActivity extends BaseActivity implements
     public void onResendOtp() {
         // Khi người dùng bấm "Gửi lại" trong Dialog
         phoneAuthManager.resendOtp(viewModel.tempPhone);
+    }
+
+    private void loadAndSaveAccountNumber(String userId) {
+        if (userId == null || userId.isEmpty()) return;
+        
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        
+        // Thử lấy từ users collection trước
+        db.collection("users").document(userId)
+                .get()
+                .addOnSuccessListener(userDoc -> {
+                    if (userDoc.exists()) {
+                        String accountNumber = userDoc.getString("account_number");
+                        if (accountNumber == null) {
+                            accountNumber = userDoc.getString("accountNumber");
+                        }
+                        
+                        if (accountNumber != null && !accountNumber.isEmpty()) {
+                            sessionManager.saveAccountNumber(accountNumber);
+                            return;
+                        }
+                    }
+                    
+                    // Nếu chưa có, thử lấy từ accounts collection
+                    db.collection("accounts").document(userId)
+                            .get()
+                            .addOnSuccessListener(accountDoc -> {
+                                if (accountDoc.exists()) {
+                                    String accountNumber = accountDoc.getString("account_number");
+                                    if (accountNumber == null) {
+                                        accountNumber = accountDoc.getString("accountNumber");
+                                    }
+                                    
+                                    if (accountNumber != null && !accountNumber.isEmpty()) {
+                                        sessionManager.saveAccountNumber(accountNumber);
+                                    }
+                                }
+                            });
+                });
     }
 
     private void navigateToHome() {

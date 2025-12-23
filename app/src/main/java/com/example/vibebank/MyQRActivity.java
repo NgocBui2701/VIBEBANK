@@ -15,6 +15,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
+import com.example.vibebank.utils.SessionManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -40,12 +41,14 @@ public class MyQRActivity extends AppCompatActivity {
 
     private String accountNumber, accountName;
     private Bitmap qrBitmap;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my_qr);
 
+        sessionManager = new SessionManager(this);
         initViews();
         loadUserData();
         setupListeners();
@@ -61,55 +64,71 @@ public class MyQRActivity extends AppCompatActivity {
     }
 
     private void loadUserData() {
-        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-            Toast.makeText(this, "Chưa đăng nhập!", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
+        // Kiểm tra session đăng nhập
+        if (!sessionManager.isLoggedIn()) {
+            String userId = sessionManager.getCurrentUserId();
+            if (userId == null || userId.isEmpty()) {
+                Toast.makeText(this, "Chưa đăng nhập!", Toast.LENGTH_SHORT).show();
+                finish();
+                return;
+            }
         }
 
-        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        // Lấy thông tin từ session
+        accountName = sessionManager.getUserFullName();
+        accountNumber = sessionManager.getAccountNumber();
+
+        // Nếu chưa có account number trong session, lấy từ Firestore và lưu vào session
+        if (accountNumber == null || accountNumber.isEmpty()) {
+            String userId = sessionManager.getCurrentUserId();
+            if (userId == null || userId.isEmpty()) {
+                // Fallback: thử lấy từ FirebaseAuth
+                if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+                    userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                } else {
+                    Toast.makeText(this, "Không tìm thấy thông tin người dùng!", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
+            }
+            loadAccountNumberFromFirestore(userId);
+        } else {
+            // Đã có đủ thông tin từ session, hiển thị QR code
+            displayQRCode();
+        }
+    }
+
+    private void loadAccountNumberFromFirestore(String userId) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         
-        // Load name from users collection
+        // Thử lấy từ users collection trước
         db.collection("users")
                 .document(userId)
                 .get()
                 .addOnSuccessListener(userDoc -> {
-                    if (!userDoc.exists()) {
-                        Toast.makeText(MyQRActivity.this, "Không tìm thấy thông tin tài khoản!", 
-                            Toast.LENGTH_SHORT).show();
-                        finish();
-                        return;
+                    if (userDoc.exists()) {
+                        accountNumber = userDoc.getString("account_number");
+                        if (accountNumber == null) {
+                            accountNumber = userDoc.getString("accountNumber");
+                        }
                     }
-
-                    // Get name
-                    accountName = userDoc.getString("full_name");
-                    if (accountName == null) {
-                        accountName = userDoc.getString("name");
-                    }
-
-                    // Try to get account number from users collection first
-                    accountNumber = userDoc.getString("account_number");
-                    if (accountNumber == null) {
-                        accountNumber = userDoc.getString("accountNumber");
-                    }
-
-                    if (accountNumber != null) {
-                        // Already have both, generate QR
-                        displayQRCode();
+                    
+                    // Nếu vẫn chưa có, thử lấy từ accounts collection
+                    if (accountNumber == null || accountNumber.isEmpty()) {
+                        loadAccountNumberFromAccounts(userId);
                     } else {
-                        // Need to get account number from accounts collection
-                        loadAccountNumber(userId);
+                        // Lưu vào session để lần sau không cần query
+                        sessionManager.saveAccountNumber(accountNumber);
+                        displayQRCode();
                     }
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(MyQRActivity.this, "Lỗi: " + e.getMessage(), 
-                        Toast.LENGTH_SHORT).show();
-                    finish();
+                    // Nếu lỗi, thử lấy từ accounts collection
+                    loadAccountNumberFromAccounts(userId);
                 });
     }
 
-    private void loadAccountNumber(String userId) {
+    private void loadAccountNumberFromAccounts(String userId) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         
         db.collection("accounts")
@@ -123,17 +142,20 @@ public class MyQRActivity extends AppCompatActivity {
                         }
                     }
                     
-                    if (accountNumber == null) {
+                    if (accountNumber == null || accountNumber.isEmpty()) {
                         // Generate account number based on userId
                         accountNumber = "VB" + userId.substring(0, Math.min(10, userId.length())).toUpperCase();
                     }
                     
+                    // Lưu vào session để lần sau không cần query
+                    sessionManager.saveAccountNumber(accountNumber);
                     displayQRCode();
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(MyQRActivity.this, "Lỗi load account: " + e.getMessage(), 
-                        Toast.LENGTH_SHORT).show();
-                    finish();
+                    // Generate account number based on userId nếu không lấy được
+                    accountNumber = "VB" + userId.substring(0, Math.min(10, userId.length())).toUpperCase();
+                    sessionManager.saveAccountNumber(accountNumber);
+                    displayQRCode();
                 });
     }
 

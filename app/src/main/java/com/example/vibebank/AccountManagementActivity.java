@@ -1,7 +1,6 @@
 package com.example.vibebank;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
@@ -15,6 +14,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.vibebank.utils.SessionManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -29,6 +29,7 @@ public class AccountManagementActivity extends AppCompatActivity {
     // Firebase
     private FirebaseFirestore db;
     private String currentUserId;
+    private SessionManager sessionManager;
     
     // Header
     private ImageView btnBack;
@@ -79,17 +80,20 @@ public class AccountManagementActivity extends AppCompatActivity {
         });
 
         db = FirebaseFirestore.getInstance();
+        sessionManager = new SessionManager(this);
         
-        // Get current user ID
-        FirebaseAuth auth = FirebaseAuth.getInstance();
-        if (auth.getCurrentUser() != null) {
-            currentUserId = auth.getCurrentUser().getUid();
-        } else {
-            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
-            currentUserId = prefs.getString("current_user_id", null);
+        // Get current user ID from session
+        currentUserId = sessionManager.getCurrentUserId();
+        
+        // Fallback: thử lấy từ FirebaseAuth nếu chưa có trong session
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+            if (auth.getCurrentUser() != null) {
+                currentUserId = auth.getCurrentUser().getUid();
+            }
         }
 
-        if (currentUserId == null) {
+        if (currentUserId == null || currentUserId.isEmpty()) {
             Toast.makeText(this, "Lỗi phiên đăng nhập", Toast.LENGTH_SHORT).show();
             finish();
             return;

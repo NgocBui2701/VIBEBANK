@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import com.example.vibebank.utils.ElectricBillMockService;
+import com.example.vibebank.utils.SessionManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -41,6 +42,7 @@ public class ElectricBillActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private String currentUserId;
     private double currentBalance = 0;
+    private SessionManager sessionManager;
 
     private ElectricBillMockService.ElectricBill currentBill;
 
@@ -54,9 +56,17 @@ public class ElectricBillActivity extends AppCompatActivity {
 
         // Initialize Firebase
         db = FirebaseFirestore.getInstance();
-        FirebaseAuth auth = FirebaseAuth.getInstance();
-        if (auth.getCurrentUser() != null) {
-            currentUserId = auth.getCurrentUser().getUid();
+        sessionManager = new SessionManager(this);
+        
+        // Lấy userId từ session
+        currentUserId = sessionManager.getCurrentUserId();
+        
+        // Fallback: thử lấy từ FirebaseAuth nếu chưa có trong session
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            FirebaseAuth auth = FirebaseAuth.getInstance();
+            if (auth.getCurrentUser() != null) {
+                currentUserId = auth.getCurrentUser().getUid();
+            }
         }
 
         initViews();

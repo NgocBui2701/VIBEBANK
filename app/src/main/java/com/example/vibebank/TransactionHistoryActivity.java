@@ -1,6 +1,5 @@
 package com.example.vibebank;
 
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
@@ -16,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.example.vibebank.utils.SessionManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.textfield.TextInputEditText;
@@ -55,6 +55,7 @@ public class TransactionHistoryActivity extends AppCompatActivity {
 
     private FirebaseFirestore db;
     private String currentUserId;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,20 +63,20 @@ public class TransactionHistoryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_transaction_history);
 
         db = FirebaseFirestore.getInstance();
-        // Lấy ID người dùng hiện tại
-        // 1. Thử lấy từ Firebase Auth trước
-        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-            currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        sessionManager = new SessionManager(this);
+        
+        // Lấy ID người dùng hiện tại từ session
+        currentUserId = sessionManager.getCurrentUserId();
+        
+        // Fallback: thử lấy từ FirebaseAuth nếu chưa có trong session
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+                currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            }
         }
 
-        // 2. Nếu Firebase trả về null, lấy từ SharedPreferences (Backup)
-        if (currentUserId == null) {
-            SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
-            currentUserId = prefs.getString("current_user_id", null);
-        }
-
-        // 3. Kiểm tra lần cuối
-        if (currentUserId == null) {
+        // Kiểm tra lần cuối
+        if (currentUserId == null || currentUserId.isEmpty()) {
             Toast.makeText(this, "Lỗi: Không xác định được người dùng.", Toast.LENGTH_LONG).show();
             finish();
             return;

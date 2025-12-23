@@ -1,10 +1,12 @@
 package com.example.vibebank.ui.home;
 
+import android.content.Context;
 import android.util.Log;
 
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import com.example.vibebank.utils.SessionManager;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
@@ -24,21 +26,46 @@ public class HomeViewModel extends ViewModel {
     public MutableLiveData<String> avatarUrl = new MutableLiveData<>();
 
 
-    // Load thông tin người dùng (Tên, Avatar)
-    public void loadUserProfile(String userId) {
-        if (userId == null || userId.isEmpty()) return;
-
+    // Load thông tin người dùng (Tên, Avatar) từ session
+    public void loadUserProfile(Context context) {
+        SessionManager sessionManager = new SessionManager(context);
+        
+        // Lấy từ session trước
+        String fullName = sessionManager.getUserFullName();
+        String avatar = sessionManager.getAvatarUrl();
+        
+        if (fullName != null && !fullName.isEmpty()) {
+            userName.setValue(fullName.toUpperCase());
+        }
+        
+        if (avatar != null && !avatar.isEmpty()) {
+            avatarUrl.setValue(avatar);
+        }
+        
+        // Nếu chưa có avatar trong session, thử lấy từ Firestore (fallback)
+        if ((avatar == null || avatar.isEmpty()) || (fullName == null || fullName.isEmpty() || fullName.equals("Quý khách"))) {
+            String userId = sessionManager.getCurrentUserId();
+            if (userId != null && !userId.isEmpty()) {
+                loadUserProfileFromFirestore(userId, sessionManager);
+            }
+        }
+    }
+    
+    // Fallback: Load từ Firestore nếu chưa có trong session
+    private void loadUserProfileFromFirestore(String userId, SessionManager sessionManager) {
         db.collection("users").document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         String fullName = documentSnapshot.getString("full_name");
-                        if (fullName != null) {
+                        if (fullName != null && !fullName.isEmpty()) {
                             userName.setValue(fullName.toUpperCase());
+                            sessionManager.saveUserFullName(fullName);
                         }
                         String avatarUrl = documentSnapshot.getString("avatar_url");
-                        if (avatarUrl != null) {
+                        if (avatarUrl != null && !avatarUrl.isEmpty()) {
                             this.avatarUrl.setValue(avatarUrl);
+                            sessionManager.saveAvatarUrl(avatarUrl);
                         }
                     }
                 })

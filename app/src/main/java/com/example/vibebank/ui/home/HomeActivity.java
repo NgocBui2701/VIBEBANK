@@ -32,7 +32,6 @@ import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.bumptech.glide.Glide;
 import com.example.vibebank.AccountManagementActivity;
-import com.example.vibebank.BranchListActivity;
 import com.example.vibebank.DepositActivity;
 import com.example.vibebank.ElectricBillActivity;
 import com.example.vibebank.WaterBillActivity;
@@ -344,34 +343,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                 drawerLayout.openDrawer(GravityCompat.END);
             }
         });
-
-        // NavigationView menu items
-        NavigationView navigationView = findViewById(R.id.nav_view);
-        if (navigationView != null) {
-            navigationView.setNavigationItemSelectedListener(item -> {
-                int itemId = item.getItemId();
-                
-                if (itemId == R.id.nav_branches) {
-                    // Mở danh sách chi nhánh
-                    Intent intent = new Intent(HomeActivity.this, BranchListActivity.class);
-                    startActivity(intent);
-                    drawerLayout.closeDrawer(GravityCompat.END);
-                    return true;
-                } else if (itemId == R.id.nav_security) {
-                    // TODO: Mở màn hình bảo mật
-                    Toast.makeText(this, "Bảo mật", Toast.LENGTH_SHORT).show();
-                    drawerLayout.closeDrawer(GravityCompat.END);
-                    return true;
-                } else if (itemId == R.id.nav_support) {
-                    // TODO: Mở màn hình hỗ trợ
-                    Toast.makeText(this, "Hỗ trợ", Toast.LENGTH_SHORT).show();
-                    drawerLayout.closeDrawer(GravityCompat.END);
-                    return true;
-                }
-                
-                return false;
-            });
-        }
     }
 
     private void setupData() {
@@ -427,12 +398,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapView.onCreate(mapViewBundle);
         mapView.getMapAsync(this);
 
-        // Click on map to open full-screen BranchMapActivity
-        mapView.setOnClickListener(v -> {
-            Intent intent = new Intent(HomeActivity.this, com.example.vibebank.BranchMapActivity.class);
-            startActivity(intent);
-        });
-
         // Fix lỗi cuộn trang khi chạm vào map
         mapView.setOnTouchListener((v, event) -> {
             int action = event.getAction();
@@ -443,9 +408,6 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
                     return false;
                 case MotionEvent.ACTION_UP:
                     scrollView.requestDisallowInterceptTouchEvent(false);
-                    // Open BranchMapActivity on tap
-                    Intent intent = new Intent(HomeActivity.this, com.example.vibebank.BranchMapActivity.class);
-                    startActivity(intent);
                     return true;
                 default:
                     return true;
